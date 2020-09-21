@@ -41,16 +41,27 @@ stages:
 
 # building in docker
 x86_64-linux-gnu-bullseye:
+  before_script:
+    - apt-get update
+    - apt-get install -y libglu1-mesa-dev libvterm-dev
   <<: *universal_linux_definition_bullseye
 
 i686-linux-gnu-bullseye:
   before_script:
+    - apt-get update
+    - apt-get install -y libglu1-mesa-dev:i386 libvterm-dev:i386
   <<: *universal_linux_definition_bullseye
 
 arm-linux-gnueabihf-bullseye:
+  before_script:
+    - apt-get update
+    - apt-get install -y libglu1-mesa-dev:armhf libvterm-dev:armhf
   <<: *arm_linux_definition_bullseye
 
 aarch64-linux-gnu-bullseye:
+  before_script:
+    - apt-get update
+    - apt-get install -y libglu1-mesa-dev:arm64 libvterm-dev:arm64
   <<: *arm_linux_definition_bullseye
 
 #x86_64-w64-mingw32:
