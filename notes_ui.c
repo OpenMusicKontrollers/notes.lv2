@@ -88,8 +88,6 @@ struct _plughandle_t {
 	double frac;
 	d2tk_coord_t header_height;
 	d2tk_coord_t footer_height;
-	d2tk_coord_t sidebar_width;
-	d2tk_coord_t item_height;
 	d2tk_coord_t font_height;
 
 	uint32_t max_red;
@@ -602,8 +600,6 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	handle->header_height = 32 * handle->scale;
 	handle->footer_height = 40 * handle->scale;
-	handle->sidebar_width = 256 * handle->scale;
-	handle->item_height = 40 * handle->scale;
 
 	handle->state.font_height = 16;
 	_update_font_height(handle);
