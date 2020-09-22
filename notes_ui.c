@@ -34,26 +34,7 @@
 #include <d2tk/hash.h>
 #include <d2tk/frontend_pugl.h>
 
-#define GLYPH_W 7
-#define GLYPH_H (GLYPH_W * 2)
-
-#define FPS 25
-
-#define DEFAULT_FG 0xddddddff
-#define DEFAULT_BG 0x222222ff
-
-#define NROWS_MAX 512
-#define NCOLS_MAX 512
-
-#define MAX(x, y) (x > y ? y : x)
-#define WAV_MAX 512
-
-typedef struct _wav_t wav_t;
 typedef struct _plughandle_t plughandle_t;
-
-struct _wav_t {
-	float vals [WAV_MAX];	
-};
 
 struct _plughandle_t {
 	LV2_URID_Map *map;
@@ -76,6 +57,7 @@ struct _plughandle_t {
 	uint64_t hash;
 
 	LV2_URID atom_eventTransfer;
+	LV2_URID atom_beatTime;
 	LV2_URID urid_code;
 	LV2_URID urid_fontHeight;
 
@@ -85,7 +67,6 @@ struct _plughandle_t {
 	time_t modtime;
 
 	float scale;
-	double frac;
 	d2tk_coord_t header_height;
 	d2tk_coord_t footer_height;
 	d2tk_coord_t font_height;
@@ -103,12 +84,32 @@ _update_font_height(plughandle_t *handle)
 
 static void
 _intercept_code(void *data, int64_t frames __attribute__((unused)),
-	props_impl_t *impl __attribute__((unused)))
+	props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
-	const ssize_t len = strlen(handle->state.code);
-	const uint64_t hash = d2tk_hash(handle->state.code, len);
+	const LV2_Atom_Sequence_Body *seq_body =
+		(const LV2_Atom_Sequence_Body *)handle->state.seq_body;
+
+	ssize_t len = 0;
+	const char *code = NULL;
+
+	LV2_ATOM_SEQUENCE_BODY_FOREACH(seq_body, impl->value.size, ev)
+	{
+		const LV2_Atom *atom = &ev->body;
+
+		len = atom->size - 1; // minus null terminator
+		code = LV2_ATOM_BODY_CONST(atom);
+
+		break; //FIXME
+	}
+
+	if(!code)
+	{
+		return;
+	}
+
+	const uint64_t hash = d2tk_hash(code, len);
 
 	if(handle->hash == hash)
 	{
@@ -130,7 +131,7 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	{
 		lv2_log_error(&handle->logger, "fsync: %s\n", strerror(errno));
 	}
-	if(write(handle->fd, handle->state.code, len) == -1)
+	if(write(handle->fd, code, len) == -1)
 	{
 		lv2_log_error(&handle->logger, "write: %s\n", strerror(errno));
 	}
@@ -173,8 +174,8 @@ _intercept_font_height(void *data, int64_t frames __attribute__((unused)),
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = NOTES__code,
-		.offset = offsetof(plugstate_t, code),
-		.type = LV2_ATOM__String,
+		.offset = offsetof(plugstate_t, seq_body),
+		.type = LV2_ATOM__Sequence,
 		.event_cb = _intercept_code,
 		.max_size = CODE_SIZE
 	},
@@ -185,33 +186,6 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.event_cb = _intercept_font_height
 	}
 };
-
-static void
-_message_set_code(plughandle_t *handle, size_t len)
-{
-	ser_atom_t ser;
-	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_code);
-	if(!impl)
-	{
-		return;
-	}
-
-	impl->value.size = len;
-
-	ser_atom_init(&ser);
-	ser_atom_reset(&ser, &handle->forge);
-
-	LV2_Atom_Forge_Ref ref = 1;
-
-	props_set(&handle->props, &handle->forge, 0, handle->urid_code, &ref);
-
-	const LV2_Atom_Event *ev = (const LV2_Atom_Event *)ser_atom_get(&ser);
-	const LV2_Atom *atom = &ev->body;
-	handle->writer(handle->controller, 0, lv2_atom_total_size(atom),
-		handle->atom_eventTransfer, atom);
-
-	ser_atom_deinit(&ser);
-}
 
 static void
 _message_set_key(plughandle_t *handle, LV2_URID key)
@@ -540,6 +514,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	handle->atom_eventTransfer = handle->map->map(handle->map->handle,
 		LV2_ATOM__eventTransfer);
+	handle->atom_beatTime = handle->map->map(handle->map->handle,
+		LV2_ATOM__beatTime);
 	handle->urid_code = handle->map->map(handle->map->handle,
 		NOTES__code);
 	handle->urid_fontHeight = handle->map->map(handle->map->handle,
@@ -674,12 +650,36 @@ _file_read(plughandle_t *handle)
 
 	lseek(handle->fd, 0, SEEK_SET);
 
-	read(handle->fd, handle->state.code, len);
-	handle->state.code[len] = '\0';
+	char *code = alloca(len + 1);
+	if(!code)
+	{
+		return;
+	}
 
-	handle->hash = d2tk_hash(handle->state.code, len);
+	read(handle->fd, code, len);
+	code[len] = '\0';
 
-	_message_set_code(handle, len + 1);
+	handle->hash = d2tk_hash(code, len);
+
+	ser_atom_t ser;
+	ser_atom_init(&ser);
+	ser_atom_reset(&ser, &handle->forge);
+
+	LV2_Atom_Forge_Frame frm;
+	lv2_atom_forge_sequence_head(&handle->forge, &frm, handle->atom_beatTime);
+	lv2_atom_forge_beat_time(&handle->forge, 0.0); //FIXME
+	lv2_atom_forge_string(&handle->forge, code, len);
+	lv2_atom_forge_pop(&handle->forge, &frm);
+
+	const LV2_Atom *atom = ser_atom_get(&ser);
+
+	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_code);
+	_props_impl_set(&handle->props, impl, atom->type, atom->size,
+		LV2_ATOM_BODY_CONST(atom));
+
+	ser_atom_deinit(&ser);
+
+	_message_set_key(handle, handle->urid_code);
 }
 
 static int
