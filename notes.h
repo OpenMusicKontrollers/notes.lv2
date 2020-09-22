@@ -59,7 +59,7 @@ typedef struct _plugstate_t plugstate_t;
 
 struct _plugstate_t {
 	int32_t font_height;
-	char code [CODE_SIZE];
+	uint8_t seq_body [CODE_SIZE];
 };
 
 #endif // _NOTES_LV2_H
