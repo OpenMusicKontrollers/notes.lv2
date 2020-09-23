@@ -43,6 +43,8 @@ struct _plughandle_t {
 	LV2_Log_Log *log;
 	LV2_Log_Logger logger;
 
+	LV2UI_Request_Value *request;
+
 	d2tk_pugl_config_t config;
 	d2tk_frontend_t *dpugl;
 
@@ -60,6 +62,7 @@ struct _plughandle_t {
 	LV2_URID atom_beatTime;
 	LV2_URID urid_code;
 	LV2_URID urid_fontHeight;
+	LV2_URID urid_imgPath;
 
 	bool reinit;
 	char template [24];
@@ -184,6 +187,13 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, font_height),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept_font_height
+	},
+	{
+		.property = NOTES__imgPath,
+		.offset = offsetof(plugstate_t, img_path),
+		.type = LV2_ATOM__Path,
+		.max_size = PATH_MAX,
+		.access = LV2_PATCH__readable
 	}
 };
 
@@ -287,6 +297,33 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
+_expose_image_request(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "Load image";
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		const LV2_URID key = handle->urid_imgPath;
+		const LV2_URID type = handle->forge.Path;
+
+		handle->request->request(handle->request->handle, key, type, NULL);
+	}
+}
+
+static inline void
+_expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	d2tk_base_image(base, -1, handle->state.img_path, rect, D2TK_ALIGN_CENTERED);
+}
+
+static inline void
 _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	const d2tk_coord_t frac [3] = { 1, 1, 1 };
@@ -299,11 +336,11 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				//FIXME
+				_expose_image_request(handle, lrect);
 			} break;
 			case 1:
 			{
-				//FIXME
+				_expose_image(handle, lrect); //FIXME
 			} break;
 			case 2:
 			{
@@ -488,6 +525,10 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		{
 			opts = features[i]->data;
 		}
+		else if(!strcmp(features[i]->URI, LV2_UI__requestValue))
+		{
+			handle->request = features[i]->data;
+		}
 	}
 
 	if(!parent)
@@ -497,10 +538,19 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		free(handle);
 		return NULL;
 	}
+
 	if(!handle->map)
 	{
 		fprintf(stderr,
 			"%s: Host does not support urid:map\n", descriptor->URI);
+		free(handle);
+		return NULL;
+	}
+
+	if(!handle->request)
+	{
+		fprintf(stderr,
+			"%s: Host does not support ui:requestValue\n", descriptor->URI);
 		free(handle);
 		return NULL;
 	}
@@ -520,6 +570,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		NOTES__code);
 	handle->urid_fontHeight = handle->map->map(handle->map->handle,
 		NOTES__fontHeight);
+	handle->urid_imgPath = handle->map->map(handle->map->handle,
+		NOTES__imgPath);
 
 	if(!props_init(&handle->props, plugin_uri,
 		defs, MAX_NPROPS, &handle->state, &handle->stash,

@@ -60,6 +60,13 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.property = NOTES__fontHeight,
 		.offset = offsetof(plugstate_t, font_height),
 		.type = LV2_ATOM__Int
+	},
+	{
+		.property = NOTES__imgPath,
+		.offset = offsetof(plugstate_t, img_path),
+		.type = LV2_ATOM__Path,
+		.max_size = PATH_MAX,
+		.access = LV2_PATCH__readable
 	}
 };
 

@@ -28,6 +28,6 @@ notes:ui
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
-	lv2:requiredFeature ui:idleInterface, ui:resize, urid:map, opts:options ;
+	lv2:requiredFeature ui:idleInterface, ui:resize, ui:requestValue, urid:map, opts:options ;
 	opts:supportedOption ui:scaleFactor ;
 	lv2:extensionData ui:idleInterface, ui:resize .

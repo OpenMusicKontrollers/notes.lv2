@@ -19,6 +19,7 @@
 #define _NOTES_LV2_H
 
 #include <stdint.h>
+#include <limits.h>
 #if !defined(_WIN32)
 #	include <sys/mman.h>
 #else
@@ -51,14 +52,16 @@
 // param uris
 #define NOTES__code          NOTES_PREFIX "code"
 #define NOTES__fontHeight    NOTES_PREFIX "fontHeight"
+#define NOTES__imgPath       NOTES_PREFIX "imgPath"
 
-#define MAX_NPROPS 2
+#define MAX_NPROPS 3
 #define CODE_SIZE 0x10000 // 64 K
 
 typedef struct _plugstate_t plugstate_t;
 
 struct _plugstate_t {
 	int32_t font_height;
+	char img_path [PATH_MAX];
 	uint8_t seq_body [CODE_SIZE];
 };
 
