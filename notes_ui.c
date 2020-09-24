@@ -376,7 +376,7 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 1:
 			{
-				_expose_image(handle, lrect); //FIXME
+				//FIXME
 			} break;
 			case 2:
 			{
@@ -456,6 +456,30 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
+_expose_center(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const unsigned num = strlen(handle->state.img_path) ? 2 : 1;
+	const d2tk_coord_t frac [2] = { 0, 0 };
+	D2TK_BASE_LAYOUT(rect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	{
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+		switch(k)
+		{
+			case 0:
+			{
+				_expose_term(handle, lrect);
+			} break;
+			case 1:
+			{
+				_expose_image(handle, lrect);
+			} break;
+		}
+	}
+}
+
+static inline void
 _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	const d2tk_coord_t frac [2] = { 0, handle->footer_height };
@@ -468,7 +492,7 @@ _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				_expose_term(handle, lrect);
+				_expose_center(handle, lrect);
 			} break;
 			case 1:
 			{
@@ -733,39 +757,30 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 }
 
 static void
-_file_read(plughandle_t *handle)
+_update_seq(plughandle_t *handle, const char *txt, size_t txt_len)
 {
-	lseek(handle->fd, 0, SEEK_SET);
-	const size_t len = lseek(handle->fd, 0, SEEK_END);
-
-	lseek(handle->fd, 0, SEEK_SET);
-
-	char *txt = alloca(len + 1);
-	if(!txt)
-	{
-		return;
-	}
-
-	read(handle->fd, txt, len);
-	txt[len] = '\0';
-
-	handle->hash = d2tk_hash(txt, len);
-
 	ser_atom_t ser;
 	ser_atom_init(&ser);
 	ser_atom_reset(&ser, &handle->forge);
 
 	LV2_Atom_Forge_Frame frm [2];
 	lv2_atom_forge_sequence_head(&handle->forge, &frm[0], handle->atom_beatTime);
+	{
 		lv2_atom_forge_beat_time(&handle->forge, 0.0); //FIXME
 		lv2_atom_forge_object(&handle->forge, &frm[1], 0, handle->urid_Item);
-			lv2_atom_forge_key(&handle->forge, handle->urid_itemTxt);
-			lv2_atom_forge_string(&handle->forge, txt, len);
-#if 0
-			lv2_atom_forge_key(&handle->forge, handle->urid_itemImg);
-			lv2_atom_forge_path(&handle->forge, NULL, 0); //FIXME
-#endif
+		{
+			{
+				lv2_atom_forge_key(&handle->forge, handle->urid_itemTxt);
+				lv2_atom_forge_string(&handle->forge, txt, txt_len);
+			}
+			if(strlen(handle->state.img_path))
+			{
+				lv2_atom_forge_key(&handle->forge, handle->urid_itemImg);
+				lv2_atom_forge_path(&handle->forge, handle->state.img_path, strlen(handle->state.img_path));
+			}
+		}
 		lv2_atom_forge_pop(&handle->forge, &frm[1]);
+	}
 	lv2_atom_forge_pop(&handle->forge, &frm[0]);
 
 	const LV2_Atom *atom = ser_atom_get(&ser);
@@ -777,6 +792,28 @@ _file_read(plughandle_t *handle)
 	ser_atom_deinit(&ser);
 
 	_message_set_key(handle, handle->urid_seq);
+}
+
+static void
+_file_read(plughandle_t *handle)
+{
+	lseek(handle->fd, 0, SEEK_SET);
+	const size_t txt_len = lseek(handle->fd, 0, SEEK_END);
+
+	lseek(handle->fd, 0, SEEK_SET);
+
+	char *txt = alloca(txt_len + 1);
+	if(!txt)
+	{
+		return;
+	}
+
+	read(handle->fd, txt, txt_len);
+	txt[txt_len] = '\0';
+
+	handle->hash = d2tk_hash(txt, txt_len);
+
+	_update_seq(handle, txt, txt_len);
 }
 
 static int
