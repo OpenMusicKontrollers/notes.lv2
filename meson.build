@@ -34,7 +34,13 @@ sord_validate = find_program('sord_validate', native : true, required : false)
 lv2lint = find_program('lv2lint', required : false)
 
 m_dep = cc.find_library('m')
-lv2_dep = dependency('lv2', version : '>=1.18.0')
+lv2_dep = dependency('lv2', version : '>=1.16.0')
+
+if cc.has_member('LV2UI_Request_Value', 'request',
+		prefix : '#include <lv2/lv2plug.in/ns/extensions/ui/ui.h>')
+	add_project_arguments('-D_LV2_HAS_REQUEST_VALUE', language : 'c')
+	message('building with ui:requestValue support')
+endif
 
 dsp_deps = [m_dep, lv2_dep]
 ui_deps = [lv2_dep, d2tk_dep]

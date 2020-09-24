@@ -43,7 +43,9 @@ struct _plughandle_t {
 	LV2_Log_Log *log;
 	LV2_Log_Logger logger;
 
+#ifdef _LV2_HAS_REQUEST_VALUE
 	LV2UI_Request_Value *request;
+#endif
 
 	d2tk_pugl_config_t config;
 	d2tk_frontend_t *dpugl;
@@ -321,6 +323,7 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
+#ifdef _LV2_HAS_REQUEST_VALUE
 static inline void
 _expose_image_request(plughandle_t *handle, const d2tk_rect_t *rect)
 {
@@ -328,6 +331,11 @@ _expose_image_request(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char lbl [] = "Load image";
+
+	if(!handle->request)
+	{
+		return;
+	}
 
 	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
 		D2TK_ALIGN_CENTERED, rect))
@@ -338,6 +346,7 @@ _expose_image_request(plughandle_t *handle, const d2tk_rect_t *rect)
 		handle->request->request(handle->request->handle, key, type, NULL);
 	}
 }
+#endif
 
 static inline void
 _expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
@@ -361,7 +370,9 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
+#ifdef _LV2_HAS_REQUEST_VALUE
 				_expose_image_request(handle, lrect);
+#endif
 			} break;
 			case 1:
 			{
@@ -550,10 +561,12 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		{
 			opts = features[i]->data;
 		}
+#ifdef _LV2_HAS_REQUEST_VALUE
 		else if(!strcmp(features[i]->URI, LV2_UI__requestValue))
 		{
 			handle->request = features[i]->data;
 		}
+#endif
 	}
 
 	if(!parent)
@@ -568,14 +581,6 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	{
 		fprintf(stderr,
 			"%s: Host does not support urid:map\n", descriptor->URI);
-		free(handle);
-		return NULL;
-	}
-
-	if(!handle->request)
-	{
-		fprintf(stderr,
-			"%s: Host does not support ui:requestValue\n", descriptor->URI);
 		free(handle);
 		return NULL;
 	}
