@@ -52,12 +52,25 @@ notes:px
 	units:render "%f px" ;
 	units:symbol "px" .
 
+notes:Item
+	a rdfs:Class ;
+	rdfs:subClassOf atom:Object ;
+	rdfs:label "Item class" .
+notes:itemTxt
+	a rdf:Property ;
+	rdfs:range atom:String ;
+	rdfs:label "Item Text" .
+notes:itemImg
+	a rdf:Property ;
+	rdfs:range atom:Path ;
+	rdfs:label "Item Image" .
+
 # Params
-notes:code
+notes:seq
 	a lv2:Parameter ;
 	rdfs:range atom:Sequence ;
-	rdfs:label "Notes" ;
-	rdfs:comment "get/set notes" .
+	rdfs:label "Notes sequence" ;
+	rdfs:comment "get/set notes sequence" .
 notes:fontHeight
 	a lv2:Parameter ;
 	rdfs:range atom:Int ;
@@ -100,16 +113,19 @@ notes:notes
 	] ;
 
 	patch:writable
-		notes:code ,
+		notes:seq ,
 		notes:fontHeight ;
 
 	state:state [
-		notes:code [
+		notes:seq [
 			a atom:Sequence ;
 			rdf:value (
 				[
 					atom:beatTime 0.0 ;
-					rdf:value "# Notes"
+					rdf:value [
+						a notes:Item ;
+						notes:itemTxt "# Notes"
+					]
 				]
 			)
 		] ;

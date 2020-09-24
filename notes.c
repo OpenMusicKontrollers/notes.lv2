@@ -51,7 +51,7 @@ struct _plughandle_t {
 
 static const props_def_t defs [MAX_NPROPS] = {
 	{
-		.property = NOTES__code,
+		.property = NOTES__seq,
 		.offset = offsetof(plugstate_t, seq_body),
 		.type = LV2_ATOM__Sequence,
 		.max_size = CODE_SIZE
