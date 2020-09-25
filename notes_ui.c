@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <time.h>
 #include <utime.h>
 
@@ -357,7 +358,32 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
 		D2TK_ALIGN_CENTERED, rect))
 	{
-		//FIXME
+		const int fd = open(handle->state.image, O_RDONLY);
+		if(fd == -1)
+		{
+			lv2_log_error(&handle->logger, "[%s] open failed: %s", __func__,
+				strerror(errno));
+			return;
+		}
+
+		lseek(fd, 0, SEEK_SET);
+		const size_t buf_len = lseek(fd, 0, SEEK_END);
+
+		lseek(fd, 0, SEEK_SET);
+
+		char *buf = alloca(buf_len + 1);
+		if(!buf)
+		{
+			lv2_log_error(&handle->logger, "[%s] alloca failed", __func__);
+			close(fd);
+			return;
+		}
+
+		read(fd, buf, buf_len);
+		close(fd);
+
+		lv2_log_note(&handle->logger, "[%s] copying image: %zu", __func__, buf_len);
+		d2tk_frontend_set_clipboard(dpugl, "image/jpeg", buf, buf_len);
 	}
 }
 
