@@ -23,7 +23,6 @@
 #include <dirent.h>
 #include <string.h>
 
-#include <d2tk/frontend_pugl.h>
 #include "example/example.h"
 
 typedef union _val_t val_t;
@@ -51,6 +50,7 @@ typedef enum _bar_t {
 	BAR_FRAME,
 	BAR_UTF8,
 	BAR_CUSTOM,
+	BAR_COPYPASTE,
 #if D2TK_PTY
 	BAR_PTY,
 #endif
@@ -78,6 +78,7 @@ static const char *bar_lbl [BAR_MAX] = {
 	[BAR_METER]      = "Meter",
 	[BAR_FRAME]      = "Frame",
 	[BAR_CUSTOM]     = "Custom",
+	[BAR_COPYPASTE]  = "Copy&Paste",
 	[BAR_UTF8]       = "UTF-8",
 #if D2TK_PTY
 	[BAR_PTY]       = "PTY",
@@ -931,6 +932,64 @@ _render_c_custom(d2tk_base_t *base, const d2tk_rect_t *rect)
 	d2tk_base_custom(base, sizeof(dummy), dummy, rect, draw_custom);
 }
 
+static inline void
+_render_c_copypaste_set(d2tk_frontend_t *frontend, d2tk_base_t *base,
+	const d2tk_rect_t *rect)
+{
+	if(d2tk_base_button_is_changed(base, D2TK_ID, rect))
+	{
+		static unsigned int count = 0;
+		static const char *type = "text/plain";
+		char buf [32];
+
+		const size_t buf_len = snprintf(buf, sizeof(buf), "d2tk #%u", count++);
+
+		d2tk_frontend_set_clipboard(frontend, type, buf, buf_len);
+	}
+}
+
+static inline void
+_render_c_copypaste_get(d2tk_frontend_t *frontend, d2tk_base_t *base,
+	const d2tk_rect_t *rect)
+{
+	if(d2tk_base_button_is_changed(base, D2TK_ID, rect))
+	{
+		const char *type = NULL;
+		size_t lbl_len = 0;
+		const char *lbl = d2tk_frontend_get_clipboard(frontend, &type, &lbl_len);
+
+		if(lbl && lbl_len && type)
+		{
+			fprintf(stderr, "clip: (%zu) %s (%s)\n", lbl_len, lbl, type);
+		}
+	}
+}
+
+static inline void
+_render_c_copypaste(d2tk_frontend_t *frontend, d2tk_base_t *base,
+	const d2tk_rect_t *rect)
+{
+	static d2tk_coord_t hfrac [2] = { 1, 1 };
+
+	D2TK_BASE_LAYOUT(rect, 2, hfrac, D2TK_FLAG_LAYOUT_X_REL, hlay)
+	{
+		const d2tk_rect_t *hrect = d2tk_layout_get_rect(hlay);
+		const d2tk_coord_t x = d2tk_layout_get_index(hlay);
+
+		switch(x)
+		{
+			case 0:
+				_render_c_copypaste_set(frontend, base, hrect);
+			{
+			} break;
+			case 1:
+			{
+				_render_c_copypaste_get(frontend, base, hrect);
+			} break;
+		}
+	}
+}
+
 #if D2TK_PTY
 static inline void
 _render_c_pty(d2tk_base_t *base, const d2tk_rect_t *rect)
@@ -1261,7 +1320,8 @@ d2tk_example_deinit(void)
 }
 
 D2TK_API void
-d2tk_example_run(d2tk_base_t *base, d2tk_coord_t w, d2tk_coord_t h)
+d2tk_example_run(d2tk_frontend_t *frontend, d2tk_base_t *base,
+	d2tk_coord_t w, d2tk_coord_t h)
 {
 	static d2tk_coord_t vfrac [2] = { 1, 19 };
 
@@ -1345,6 +1405,10 @@ d2tk_example_run(d2tk_base_t *base, d2tk_coord_t w, d2tk_coord_t h)
 					case BAR_CUSTOM:
 					{
 						_render_c_custom(base, vrect);
+					} break;
+					case BAR_COPYPASTE:
+					{
+						_render_c_copypaste(frontend, base, vrect);
 					} break;
 #if D2TK_PTY
 					case BAR_PTY:
