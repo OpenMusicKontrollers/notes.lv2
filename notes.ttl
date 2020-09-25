@@ -66,11 +66,16 @@ notes:itemImg
 	rdfs:label "Item Image" .
 
 # Params
-notes:seq
+notes:text
 	a lv2:Parameter ;
-	rdfs:range atom:Sequence ;
-	rdfs:label "Notes sequence" ;
-	rdfs:comment "get/set notes sequence" .
+	rdfs:range atom:String ;
+	rdfs:label "Notes text" ;
+	rdfs:comment "get/set notes text" .
+notes:image
+	a lv2:Parameter ;
+	rdfs:range atom:Path;
+	rdfs:label "Notes image" ;
+	rdfs:comment "get/set notes image" .
 notes:fontHeight
 	a lv2:Parameter ;
 	rdfs:range atom:Int ;
@@ -113,21 +118,12 @@ notes:notes
 	] ;
 
 	patch:writable
-		notes:seq ,
+		notes:text ,
+		notes:image ,
 		notes:fontHeight ;
 
 	state:state [
-		notes:seq [
-			a atom:Sequence ;
-			rdf:value (
-				[
-					atom:beatTime 0.0 ;
-					rdf:value [
-						a notes:Item ;
-						notes:itemTxt "# Notes"
-					]
-				]
-			)
-		] ;
+		notes:text "# Notes" ;
+		notes:image <> ;
 		notes:fontHeight "16"^^xsd:int
 	] .

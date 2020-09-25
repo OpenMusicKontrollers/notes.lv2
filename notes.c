@@ -51,9 +51,9 @@ struct _plughandle_t {
 
 static const props_def_t defs [MAX_NPROPS] = {
 	{
-		.property = NOTES__seq,
-		.offset = offsetof(plugstate_t, seq_body),
-		.type = LV2_ATOM__Sequence,
+		.property = NOTES__text,
+		.offset = offsetof(plugstate_t, text),
+		.type = LV2_ATOM__String,
 		.max_size = CODE_SIZE
 	},
 	{
@@ -62,11 +62,10 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.type = LV2_ATOM__Int
 	},
 	{
-		.property = NOTES__imgPath,
-		.offset = offsetof(plugstate_t, img_path),
+		.property = NOTES__image,
+		.offset = offsetof(plugstate_t, image),
 		.type = LV2_ATOM__Path,
-		.max_size = PATH_MAX,
-		.access = LV2_PATCH__readable
+		.max_size = PATH_MAX
 	}
 };
 

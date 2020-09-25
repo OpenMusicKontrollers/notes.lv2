@@ -62,13 +62,9 @@ struct _plughandle_t {
 
 	LV2_URID atom_eventTransfer;
 	LV2_URID atom_beatTime;
-	LV2_URID urid_seq;
+	LV2_URID urid_text;
 	LV2_URID urid_fontHeight;
-	LV2_URID urid_imgPath;
-
-	LV2_URID urid_Item;
-	LV2_URID urid_itemTxt;
-	LV2_URID urid_itemImg;
+	LV2_URID urid_image;
 
 	bool reinit;
 	char template [24];
@@ -92,52 +88,13 @@ _update_font_height(plughandle_t *handle)
 }
 
 static void
-_intercept_seq(void *data, int64_t frames __attribute__((unused)),
+_intercept_text(void *data, int64_t frames __attribute__((unused)),
 	props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
-	const LV2_Atom_Sequence_Body *seq_body =
-		(const LV2_Atom_Sequence_Body *)handle->state.seq_body;
-
-	ssize_t txt_len = 0;
-	const char *txt = NULL;
-
-	LV2_ATOM_SEQUENCE_BODY_FOREACH(seq_body, impl->value.size, ev)
-	{
-		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
-
-		if(!lv2_atom_forge_is_object_type(&handle->forge, obj->atom.type))
-		{
-			continue;
-		}
-
-		if(obj->body.otype != handle->urid_Item)
-		{
-			continue;
-		}
-
-		const LV2_Atom_String *itemTxt = NULL;
-		const LV2_Atom_String *itemImg = NULL;
-
-		lv2_atom_object_get(obj,
-			handle->urid_itemTxt, &itemTxt,
-			handle->urid_itemImg, &itemImg,
-			NULL);
-
-		if(itemTxt)
-		{
-			txt_len = itemTxt->atom.size - 1; // minus null terminator
-			txt = LV2_ATOM_BODY_CONST(&itemTxt->atom);
-		}
-
-		break; //FIXME
-	}
-
-	if(!txt)
-	{
-		return;
-	}
+	ssize_t txt_len = impl->value.size - 1;
+	const char *txt = handle->state.text;
 
 	const uint64_t hash = d2tk_hash(txt, txt_len);
 
@@ -203,10 +160,10 @@ _intercept_font_height(void *data, int64_t frames __attribute__((unused)),
 
 static const props_def_t defs [MAX_NPROPS] = {
 	{
-		.property = NOTES__seq,
-		.offset = offsetof(plugstate_t, seq_body),
-		.type = LV2_ATOM__Sequence,
-		.event_cb = _intercept_seq,
+		.property = NOTES__text,
+		.offset = offsetof(plugstate_t, text),
+		.type = LV2_ATOM__String,
+		.event_cb = _intercept_text,
 		.max_size = CODE_SIZE
 	},
 	{
@@ -216,11 +173,10 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.event_cb = _intercept_font_height
 	},
 	{
-		.property = NOTES__imgPath,
-		.offset = offsetof(plugstate_t, img_path),
+		.property = NOTES__image,
+		.offset = offsetof(plugstate_t, image),
 		.type = LV2_ATOM__Path,
-		.max_size = PATH_MAX,
-		.access = LV2_PATCH__readable
+		.max_size = PATH_MAX
 	}
 };
 
@@ -325,12 +281,12 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 
 #ifdef _LV2_HAS_REQUEST_VALUE
 static inline void
-_expose_image_request(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "Load image";
+	static const char lbl [] = "load";
 
 	if(!handle->request)
 	{
@@ -340,13 +296,70 @@ _expose_image_request(plughandle_t *handle, const d2tk_rect_t *rect)
 	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
 		D2TK_ALIGN_CENTERED, rect))
 	{
-		const LV2_URID key = handle->urid_imgPath;
+		const LV2_URID key = handle->urid_image;
 		const LV2_URID type = handle->forge.Path;
 
-		handle->request->request(handle->request->handle, key, type, NULL);
+		const LV2UI_Request_Value_Status status = handle->request->request(
+			handle->request->handle, key, type, NULL);
+
+		if(status != LV2UI_REQUEST_VALUE_SUCCESS)
+		{
+			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
+		}
 	}
 }
 #endif
+
+static void
+_update_image(plughandle_t *handle, const char *img, size_t img_len)
+{
+	ser_atom_t ser;
+	ser_atom_init(&ser);
+	ser_atom_reset(&ser, &handle->forge);
+
+	lv2_atom_forge_path(&handle->forge, img, img_len);
+
+	const LV2_Atom *atom = ser_atom_get(&ser);
+
+	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_image);
+	_props_impl_set(&handle->props, impl, atom->type, atom->size,
+		LV2_ATOM_BODY_CONST(atom));
+
+	ser_atom_deinit(&ser);
+
+	_message_set_key(handle, handle->urid_image);
+}
+
+static inline void
+_expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "clear";
+	static const char none [] = "";
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		_update_image(handle, none, sizeof(none));
+	}
+}
+
+static inline void
+_expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "copy";
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		//FIXME
+	}
+}
 
 static inline void
 _expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
@@ -354,14 +367,14 @@ _expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	d2tk_base_image(base, -1, handle->state.img_path, rect, D2TK_ALIGN_CENTERED);
+	d2tk_base_image(base, -1, handle->state.image, rect, D2TK_ALIGN_CENTERED);
 }
 
 static inline void
 _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [3] = { 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
+	const d2tk_coord_t frac [4] = { 1, 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 4, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -371,14 +384,18 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			case 0:
 			{
 #ifdef _LV2_HAS_REQUEST_VALUE
-				_expose_image_request(handle, lrect);
+				_expose_image_load(handle, lrect);
 #endif
 			} break;
 			case 1:
 			{
-				//FIXME
+				_expose_image_clear(handle, lrect);
 			} break;
 			case 2:
+			{
+				_expose_image_copy(handle, lrect);
+			} break;
+			case 3:
 			{
 				_expose_font_height(handle, lrect);
 			} break;
@@ -458,9 +475,8 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_center(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const unsigned num = strlen(handle->state.img_path) ? 2 : 1;
 	const d2tk_coord_t frac [2] = { 0, 0 };
-	D2TK_BASE_LAYOUT(rect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -549,7 +565,7 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 static LV2UI_Handle
 instantiate(const LV2UI_Descriptor *descriptor,
 	const char *plugin_uri,
-	const char *bundle_path __attribute__((unused)),
+	const char *bundle_path,
 	LV2UI_Write_Function write_function,
 	LV2UI_Controller controller, LV2UI_Widget *widget,
 	const LV2_Feature *const *features)
@@ -620,20 +636,12 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		LV2_ATOM__eventTransfer);
 	handle->atom_beatTime = handle->map->map(handle->map->handle,
 		LV2_ATOM__beatTime);
-	handle->urid_seq = handle->map->map(handle->map->handle,
-		NOTES__seq);
+	handle->urid_text = handle->map->map(handle->map->handle,
+		NOTES__text);
 	handle->urid_fontHeight = handle->map->map(handle->map->handle,
 		NOTES__fontHeight);
-
-	handle->urid_imgPath = handle->map->map(handle->map->handle,
-		NOTES__imgPath);
-
-	handle->urid_Item = handle->map->map(handle->map->handle,
-		NOTES__Item);
-	handle->urid_itemTxt = handle->map->map(handle->map->handle,
-		NOTES__itemTxt);
-	handle->urid_itemImg = handle->map->map(handle->map->handle,
-		NOTES__itemImg);
+	handle->urid_image = handle->map->map(handle->map->handle,
+		NOTES__image);
 
 	if(!props_init(&handle->props, plugin_uri,
 		defs, MAX_NPROPS, &handle->state, &handle->stash,
@@ -757,41 +765,23 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 }
 
 static void
-_update_seq(plughandle_t *handle, const char *txt, size_t txt_len)
+_update_text(plughandle_t *handle, const char *txt, size_t txt_len)
 {
 	ser_atom_t ser;
 	ser_atom_init(&ser);
 	ser_atom_reset(&ser, &handle->forge);
 
-	LV2_Atom_Forge_Frame frm [2];
-	lv2_atom_forge_sequence_head(&handle->forge, &frm[0], handle->atom_beatTime);
-	{
-		lv2_atom_forge_beat_time(&handle->forge, 0.0); //FIXME
-		lv2_atom_forge_object(&handle->forge, &frm[1], 0, handle->urid_Item);
-		{
-			{
-				lv2_atom_forge_key(&handle->forge, handle->urid_itemTxt);
-				lv2_atom_forge_string(&handle->forge, txt, txt_len);
-			}
-			if(strlen(handle->state.img_path))
-			{
-				lv2_atom_forge_key(&handle->forge, handle->urid_itemImg);
-				lv2_atom_forge_path(&handle->forge, handle->state.img_path, strlen(handle->state.img_path));
-			}
-		}
-		lv2_atom_forge_pop(&handle->forge, &frm[1]);
-	}
-	lv2_atom_forge_pop(&handle->forge, &frm[0]);
+	lv2_atom_forge_string(&handle->forge, txt, txt_len);
 
 	const LV2_Atom *atom = ser_atom_get(&ser);
 
-	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_seq);
+	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_text);
 	_props_impl_set(&handle->props, impl, atom->type, atom->size,
 		LV2_ATOM_BODY_CONST(atom));
 
 	ser_atom_deinit(&ser);
 
-	_message_set_key(handle, handle->urid_seq);
+	_message_set_key(handle, handle->urid_text);
 }
 
 static void
@@ -813,7 +803,7 @@ _file_read(plughandle_t *handle)
 
 	handle->hash = d2tk_hash(txt, txt_len);
 
-	_update_seq(handle, txt, txt_len);
+	_update_text(handle, txt, txt_len);
 }
 
 static int

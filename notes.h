@@ -50,14 +50,9 @@
 #define NOTES__ui            NOTES_PREFIX "ui"
 
 // param uris
-#define NOTES__seq           NOTES_PREFIX "seq"
+#define NOTES__text          NOTES_PREFIX "text"
+#define NOTES__image         NOTES_PREFIX "image"
 #define NOTES__fontHeight    NOTES_PREFIX "fontHeight"
-
-#define NOTES__imgPath       NOTES_PREFIX "imgPath"
-
-#define NOTES__Item          NOTES_PREFIX "Item"
-#define NOTES__itemTxt       NOTES_PREFIX "itemTxt"
-#define NOTES__itemImg       NOTES_PREFIX "itemImg"
 
 #define MAX_NPROPS 3
 #define CODE_SIZE 0x10000 // 64 K
@@ -66,8 +61,8 @@ typedef struct _plugstate_t plugstate_t;
 
 struct _plugstate_t {
 	int32_t font_height;
-	char img_path [PATH_MAX];
-	uint8_t seq_body [CODE_SIZE];
+	char image [PATH_MAX];
+	char text [CODE_SIZE];
 };
 
 #endif // _NOTES_LV2_H
