@@ -383,7 +383,20 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 		close(fd);
 
 		lv2_log_note(&handle->logger, "[%s] copying image: %zu", __func__, buf_len);
-		d2tk_frontend_set_clipboard(dpugl, "image/jpeg", buf, buf_len);
+
+		if(  strcasestr(handle->state.image, ".jpg")
+			|| strcasestr(handle->state.image, ".jpeg"))
+		{
+			d2tk_frontend_set_clipboard(dpugl, "image/jpeg", buf, buf_len);
+		}
+		else if(strcasestr(handle->state.image, ".png"))
+		{
+			d2tk_frontend_set_clipboard(dpugl, "image/png", buf, buf_len);
+		}
+		else
+		{
+			lv2_log_error(&handle->logger, "[%s] image type not supported", __func__);
+		}
 	}
 }
 
@@ -394,39 +407,6 @@ _expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	d2tk_base_image(base, -1, handle->state.image, rect, D2TK_ALIGN_CENTERED);
-}
-
-static inline void
-_expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
-{
-	const d2tk_coord_t frac [4] = { 1, 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 4, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
-	{
-		const unsigned k = d2tk_layout_get_index(lay);
-		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
-
-		switch(k)
-		{
-			case 0:
-			{
-#ifdef _LV2_HAS_REQUEST_VALUE
-				_expose_image_load(handle, lrect);
-#endif
-			} break;
-			case 1:
-			{
-				_expose_image_clear(handle, lrect);
-			} break;
-			case 2:
-			{
-				_expose_image_copy(handle, lrect);
-			} break;
-			case 3:
-			{
-				_expose_font_height(handle, lrect);
-			} break;
-		}
-	}
 }
 
 /* list of tested console editors:
@@ -498,11 +478,94 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 	handle->reinit = false;
 }
 
+#ifdef _LV2_HAS_REQUEST_VALUE
 static inline void
-_expose_center(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [2] = { 0, 0 };
-	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "load";
+
+	if(!handle->request)
+	{
+		return;
+	}
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		const LV2_URID key = handle->urid_text;
+		const LV2_URID type = handle->forge.String;
+
+		const LV2UI_Request_Value_Status status = handle->request->request(
+			handle->request->handle, key, type, NULL);
+
+		if(status != LV2UI_REQUEST_VALUE_SUCCESS)
+		{
+			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
+		}
+	}
+}
+#endif
+
+static void
+_update_text(plughandle_t *handle, const char *txt, size_t txt_len)
+{
+	ser_atom_t ser;
+	ser_atom_init(&ser);
+	ser_atom_reset(&ser, &handle->forge);
+
+	lv2_atom_forge_string(&handle->forge, txt, txt_len);
+
+	const LV2_Atom *atom = ser_atom_get(&ser);
+
+	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_text);
+	_props_impl_set(&handle->props, impl, atom->type, atom->size,
+		LV2_ATOM_BODY_CONST(atom));
+
+	ser_atom_deinit(&ser);
+
+	_message_set_key(handle, handle->urid_text);
+}
+
+static inline void
+_expose_text_clear(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "clear";
+	static const char none [] = "";
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		_update_text(handle, none, sizeof(none) - 1);
+	}
+}
+
+static inline void
+_expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "copy";
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		d2tk_frontend_set_clipboard(dpugl, "UTF8_STRING",
+			handle->state.text, strlen(handle->state.text) + 1);
+	}
+}
+
+static inline void
+_expose_upper_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [4] = { 1, 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 4, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -511,21 +574,62 @@ _expose_center(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				_expose_term(handle, lrect);
+#ifdef _LV2_HAS_REQUEST_VALUE
+				_expose_text_load(handle, lrect);
+#endif
 			} break;
 			case 1:
 			{
-				_expose_image(handle, lrect);
+				_expose_text_clear(handle, lrect);
+			} break;
+			case 2:
+			{
+				_expose_text_copy(handle, lrect);
+			} break;
+			case 3:
+			{
+				_expose_font_height(handle, lrect);
 			} break;
 		}
 	}
 }
 
 static inline void
-_expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_upper(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [2] = { 0, handle->footer_height };
-	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
+	static const char lbl [] = "Text";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		const d2tk_coord_t frac [2] = { 0, handle->footer_height };
+		D2TK_BASE_LAYOUT(frect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+		{
+			const unsigned k = d2tk_layout_get_index(lay);
+			const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+			switch(k)
+			{
+				case 0:
+				{
+					_expose_term(handle, lrect);
+				} break;
+				case 1:
+				{
+					_expose_upper_footer(handle, lrect);
+				} break;
+			}
+		}
+	}
+}
+
+static inline void
+_expose_lower_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [4] = { 1, 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 4, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -534,12 +638,53 @@ _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				_expose_center(handle, lrect);
+#ifdef _LV2_HAS_REQUEST_VALUE
+				_expose_image_load(handle, lrect);
+#endif
 			} break;
 			case 1:
 			{
-				_expose_footer(handle, lrect);
+				_expose_image_clear(handle, lrect);
 			} break;
+			case 2:
+			{
+				_expose_image_copy(handle, lrect);
+			} break;
+			case 3:
+			{
+				// nothing
+			} break;
+		}
+	}
+}
+
+static inline void
+_expose_lower(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
+	static const char lbl [] = "Image";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		const d2tk_coord_t frac [2] = { 0, handle->footer_height };
+		D2TK_BASE_LAYOUT(frect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+		{
+			const unsigned k = d2tk_layout_get_index(lay);
+			const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+			switch(k)
+			{
+				case 0:
+				{
+					_expose_image(handle, lrect);
+				} break;
+				case 1:
+				{
+					_expose_lower_footer(handle, lrect);
+				} break;
+			}
 		}
 	}
 }
@@ -564,8 +709,8 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 
 	d2tk_base_set_style(base, &style);
 
-	const d2tk_coord_t frac [2] = { handle->header_height, 0 };
-	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	const d2tk_coord_t frac [3] = { handle->header_height, 0, 0 };
+	D2TK_BASE_LAYOUT(&rect, 3, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -578,7 +723,11 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 			} break;
 			case 1:
 			{
-				_expose_body(handle, lrect);
+				_expose_upper(handle, lrect);
+			} break;
+			case 2:
+			{
+				_expose_lower(handle, lrect);
 			} break;
 		}
 	}
@@ -681,7 +830,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	handle->controller = controller;
 	handle->writer = write_function;
 
-	const d2tk_coord_t w = 800;
+	const d2tk_coord_t w = 400;
 	const d2tk_coord_t h = 800;
 
 	d2tk_pugl_config_t *config = &handle->config;
@@ -723,7 +872,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	}
 
 	handle->header_height = 32 * handle->scale;
-	handle->footer_height = 40 * handle->scale;
+	handle->footer_height = 32 * handle->scale;
 
 	handle->state.font_height = 16;
 	_update_font_height(handle);
@@ -788,26 +937,6 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 	ser_atom_deinit(&ser);
 
 	d2tk_frontend_redisplay(handle->dpugl);
-}
-
-static void
-_update_text(plughandle_t *handle, const char *txt, size_t txt_len)
-{
-	ser_atom_t ser;
-	ser_atom_init(&ser);
-	ser_atom_reset(&ser, &handle->forge);
-
-	lv2_atom_forge_string(&handle->forge, txt, txt_len);
-
-	const LV2_Atom *atom = ser_atom_get(&ser);
-
-	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_text);
-	_props_impl_set(&handle->props, impl, atom->type, atom->size,
-		LV2_ATOM_BODY_CONST(atom));
-
-	ser_atom_deinit(&ser);
-
-	_message_set_key(handle, handle->urid_text);
 }
 
 static void
