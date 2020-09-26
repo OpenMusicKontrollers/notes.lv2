@@ -33,6 +33,7 @@
 typedef struct {
 	Atom CLIPBOARD;
 	Atom UTF8_STRING;
+	Atom TARGETS;
 	Atom WM_PROTOCOLS;
 	Atom WM_DELETE_WINDOW;
 	Atom PUGL_CLIENT_MSG;

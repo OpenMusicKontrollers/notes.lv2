@@ -1065,6 +1065,10 @@ puglSetClipboard(PuglView* const   view,
 {
 	PuglInternals* const impl = view->impl;
 
+	if (type && strcmp(type, "text/plain")) {
+		return PUGL_UNSUPPORTED_TYPE;
+	}
+
 	PuglStatus st = puglSetInternalClipboard(view, type, data, len);
 	if (st) {
 		return st;

@@ -228,6 +228,7 @@ puglFreeView(PuglView* view)
 
 	free(view->title);
 	free(view->clipboard.data);
+	free(view->clipboardType.data);
 	puglFreeViewInternals(view);
 	free(view);
 }
@@ -447,7 +448,7 @@ puglGetInternalClipboard(const PuglView* const view,
 	}
 
 	if (type) {
-		*type = "text/plain";
+		*type = view->clipboardType.data;
 	}
 
 	return view->clipboard.data;
@@ -459,10 +460,11 @@ puglSetInternalClipboard(PuglView* const   view,
                          const void* const data,
                          const size_t      len)
 {
-	if (type && strcmp(type, "text/plain")) {
+	if (!type) {
 		return PUGL_UNSUPPORTED_TYPE;
 	}
 
+	puglSetBlob(&view->clipboardType, type, strlen(type) + 1);
 	puglSetBlob(&view->clipboard, data, len);
 	return PUGL_SUCCESS;
 }
