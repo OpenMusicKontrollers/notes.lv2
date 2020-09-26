@@ -734,6 +734,10 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 			_props_impl_set(props, impl, value->type, value->size,
 				LV2_ATOM_BODY_CONST(value));
 
+			// send on (e.g. to UI)
+			if(*ref && !impl->def->hidden)
+				*ref = _props_patch_set(props, forge, frames, impl, sequence_num);
+
 			const props_def_t *def = impl->def;
 			if(def->event_cb)
 				def->event_cb(props->data, frames, impl);
@@ -799,6 +803,10 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 			{
 				_props_impl_set(props, impl, value->type, value->size,
 					LV2_ATOM_BODY_CONST(value));
+
+				// send on (e.g. to UI)
+				if(*ref && !impl->def->hidden)
+					*ref = _props_patch_set(props, forge, frames, impl, sequence_num);
 
 				const props_def_t *def = impl->def;
 				if(def->event_cb)
