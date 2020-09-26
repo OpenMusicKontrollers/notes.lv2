@@ -128,6 +128,7 @@ puglInitWorldInternals(PuglWorldType type, PuglWorldFlags flags)
 	// Intern the various atoms we will need
 	impl->atoms.CLIPBOARD        = XInternAtom(display, "CLIPBOARD", 0);
 	impl->atoms.UTF8_STRING      = XInternAtom(display, "UTF8_STRING", 0);
+	impl->atoms.TARGETS          = XInternAtom(display, "TARGETS", 0);
 	impl->atoms.WM_PROTOCOLS     = XInternAtom(display, "WM_PROTOCOLS", 0);
 	impl->atoms.WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", 0);
 	impl->atoms.PUGL_CLIENT_MSG  = XInternAtom(display, "_PUGL_CLIENT_MSG", 0);
@@ -900,8 +901,14 @@ handleSelectionNotify(const PuglWorld* world, PuglView* view)
 	                   &left,
 	                   &str);
 
-	if (str && fmt == 8 && type == world->impl->atoms.UTF8_STRING &&
-	    left == 0) {
+	if (str && fmt == 8 && left == 0) {
+		char *type_name = XGetAtomName(world->impl->display, type);
+		if (type_name) {
+			puglSetBlob(&view->clipboardType, type_name, strlen(type_name) + 1);
+			XFree(type_name);
+		} else {
+			puglSetBlob(&view->clipboardType, NULL, 0);
+		}
 		puglSetBlob(&view->clipboard, str, len);
 	}
 
@@ -926,17 +933,35 @@ handleSelectionRequest(const PuglWorld*              world,
 	const char* type = NULL;
 	size_t      len  = 0;
 	const void* data = puglGetInternalClipboard(view, &type, &len);
-	if (data && request->selection == world->impl->atoms.CLIPBOARD &&
-	    request->target == world->impl->atoms.UTF8_STRING) {
-		note.property = request->property;
-		XChangeProperty(world->impl->display,
-		                note.requestor,
-		                note.property,
-		                note.target,
-		                8,
-		                PropModeReplace,
-		                (const uint8_t*)data,
-		                (int)len);
+	if (data && request->selection == world->impl->atoms.CLIPBOARD) {
+		const Atom types [2] = {
+			world->impl->atoms.TARGETS,
+			XInternAtom(world->impl->display, type, 0)
+		};
+
+		if (request->target == world->impl->atoms.TARGETS) {
+			note.property = request->property;
+			XChangeProperty(world->impl->display,
+											note.requestor,
+											note.property,
+											XA_ATOM,
+											32,
+											PropModeReplace,
+											(const uint8_t*)types,
+											(int)(sizeof(types) / sizeof(Atom)));
+		} else if (request->target == types[1]) {
+			note.property = request->property;
+			XChangeProperty(world->impl->display,
+											note.requestor,
+											note.property,
+											note.target,
+											8,
+											PropModeReplace,
+											(const uint8_t*)data,
+											(int)len);
+		} else {
+			note.property = None;
+		}
 	} else {
 		note.property = None;
 	}
@@ -1034,10 +1059,10 @@ puglDispatchX11Events(PuglWorld* world)
 		} else if (xevent.type == FocusOut) {
 			XUnsetICFocus(impl->xic);
 		} else if (xevent.type == SelectionClear) {
+			puglSetBlob(&view->clipboardType, NULL, 0);
 			puglSetBlob(&view->clipboard, NULL, 0);
 		} else if (xevent.type == SelectionNotify &&
 		           xevent.xselection.selection == atoms->CLIPBOARD &&
-		           xevent.xselection.target == atoms->UTF8_STRING &&
 		           xevent.xselection.property == XA_PRIMARY) {
 			handleSelectionNotify(world, view);
 		} else if (xevent.type == SelectionRequest) {
@@ -1252,12 +1277,17 @@ puglGetClipboard(PuglView* const    view,
 	const Window owner = XGetSelectionOwner(impl->display, atoms->CLIPBOARD);
 	if (owner != None && owner != impl->win) {
 		// Clear internal selection
+		puglSetBlob(&view->clipboardType, NULL, 0);
 		puglSetBlob(&view->clipboard, NULL, 0);
+
+		const Atom type_atom = type && *type
+			? XInternAtom(impl->display, *type, 0)
+			: atoms->UTF8_STRING;
 
 		// Request selection from the owner
 		XConvertSelection(impl->display,
 		                  atoms->CLIPBOARD,
-		                  atoms->UTF8_STRING,
+		                  type_atom,
 		                  XA_PRIMARY,
 		                  impl->win,
 		                  CurrentTime);

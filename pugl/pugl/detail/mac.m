@@ -1395,6 +1395,10 @@ puglSetClipboard(PuglView* const   view,
 	NSPasteboard* const  pasteboard = [NSPasteboard generalPasteboard];
 	const char* const    str        = (const char*)data;
 
+	if (type && strcmp(type, "text/plain")) {
+		return PUGL_UNSUPPORTED_TYPE;
+	}
+
 	PuglStatus st = puglSetInternalClipboard(view, type, data, len);
 	if (st) {
 		return st;
