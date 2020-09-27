@@ -25,6 +25,8 @@
 
 #include "example/example.h"
 
+#include <d2tk/util.h>
+
 typedef union _val_t val_t;
 
 union _val_t {
@@ -54,6 +56,9 @@ typedef enum _bar_t {
 #if D2TK_PTY
 	BAR_PTY,
 #endif
+#if D2TK_SPAWN
+	BAR_SPAWN,
+#endif
 #if !defined(_WIN32) && !defined(__APPLE__)
 	BAR_BROWSER,
 #endif
@@ -81,7 +86,10 @@ static const char *bar_lbl [BAR_MAX] = {
 	[BAR_COPYPASTE]  = "Copy&Paste",
 	[BAR_UTF8]       = "UTF-8",
 #if D2TK_PTY
-	[BAR_PTY]       = "PTY",
+	[BAR_PTY]        = "PTY",
+#endif
+#if D2TK_SPAWN
+	[BAR_SPAWN]      = "SPAWN",
 #endif
 #if !defined(_WIN32) && !defined(__APPLE__)
 	[BAR_BROWSER]    = "Browser",
@@ -1052,6 +1060,36 @@ _render_c_pty(d2tk_base_t *base, const d2tk_rect_t *rect)
 }
 #endif
 
+#if D2TK_SPAWN
+static inline void
+_render_c_spawn(d2tk_base_t *base, const d2tk_rect_t *rect)
+{
+	static char lbl [] = "spawn";
+	static int kid = -1;
+
+	if(d2tk_base_button_label_is_changed(
+		base, D2TK_ID, sizeof(lbl), lbl, D2TK_ALIGN_CENTERED, rect))
+	{
+		char *argv [] = {
+			"xdg-open",
+			"https://git.open-music-kontrollers.ch/lad/d2tk/about",
+			NULL
+		};
+		kid = d2tk_util_spawn(argv);
+
+		if(kid <= 0)
+		{
+			fprintf(stderr, "failed to spawn kid\n");
+		}
+	}
+
+	if(d2tk_util_wait(&kid))
+	{
+		fprintf(stderr, "kid still running\n");
+	}
+}
+#endif
+
 #if !defined(_WIN32) && !defined(__APPLE__)
 static int
 strcasenumcmp(const char *s1, const char *s2)
@@ -1414,6 +1452,12 @@ d2tk_example_run(d2tk_frontend_t *frontend, d2tk_base_t *base,
 					case BAR_PTY:
 					{
 						_render_c_pty(base, vrect);
+					} break;
+#endif
+#if D2TK_SPAWN
+					case BAR_SPAWN:
+					{
+						_render_c_spawn(base, vrect);
 					} break;
 #endif
 #if !defined(_WIN32) && !defined(__APPLE__)
