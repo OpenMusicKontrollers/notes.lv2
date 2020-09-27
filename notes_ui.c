@@ -33,6 +33,7 @@
 #include <ser_atom.lv2/ser_atom.h>
 
 #include <d2tk/hash.h>
+#include <d2tk/util.h>
 #include <d2tk/frontend_pugl.h>
 
 typedef struct _plughandle_t plughandle_t;
@@ -80,6 +81,7 @@ struct _plughandle_t {
 	uint32_t max_red;
 
 	int done;
+	int kid;
 };
 
 static inline void
@@ -331,6 +333,14 @@ _update_image(plughandle_t *handle, const char *img, size_t img_len)
 	_message_set_key(handle, handle->urid_image);
 }
 
+static bool
+_image_invalid(plughandle_t *handle)
+{
+	return !strlen(handle->state.image)
+		|| strcasestr(handle->state.image, "notes.ttl")
+		|| strcasestr(handle->state.image, "state.ttl");
+}
+
 static inline void
 _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 {
@@ -339,6 +349,11 @@ _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char lbl [] = "clear";
 	static const char none [] = "";
+
+	if(_image_invalid(handle))
+	{
+		return;
+	}
 
 	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
 		D2TK_ALIGN_CENTERED, rect))
@@ -354,6 +369,11 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char lbl [] = "copy";
+
+	if(_image_invalid(handle))
+	{
+		return;
+	}
 
 	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
 		D2TK_ALIGN_CENTERED, rect))
@@ -398,6 +418,40 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 			lv2_log_error(&handle->logger, "[%s] image type not supported", __func__);
 		}
 	}
+}
+
+static inline void
+_expose_image_open(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "open";
+
+	if(_image_invalid(handle))
+	{
+		return;
+	}
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		char *argv [] = {
+			"xdg-open",
+			handle->state.image,
+			NULL
+		};
+
+		d2tk_util_kill(&handle->kid);
+		handle->kid = d2tk_util_spawn(argv);
+		if(handle->kid <= 0)
+		{
+			lv2_log_error(&handle->logger, "[%s] failed to spawn: %s '%s'", __func__,
+				argv[0], argv[1]);
+		}
+	}
+
+	d2tk_util_wait(&handle->kid);
 }
 
 static inline void
@@ -562,10 +616,39 @@ _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
+_expose_text_open(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char lbl [] = "open";
+
+	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, rect))
+	{
+		char *argv [] = {
+			"xdg-open",
+			handle->template,
+			NULL
+		};
+
+		d2tk_util_kill(&handle->kid);
+		handle->kid = d2tk_util_spawn(argv);
+		if(handle->kid <= 0)
+		{
+			lv2_log_error(&handle->logger, "[%s] failed to spawn: %s '%s'", __func__,
+				argv[0], argv[1]);
+		}
+	}
+
+	d2tk_util_wait(&handle->kid);
+}
+
+static inline void
 _expose_upper_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [4] = { 1, 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 4, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
+	const d2tk_coord_t frac [5] = { 1, 1, 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 5, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -587,6 +670,10 @@ _expose_upper_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 				_expose_text_copy(handle, lrect);
 			} break;
 			case 3:
+			{
+				_expose_text_open(handle, lrect);
+			} break;
+			case 4:
 			{
 				_expose_font_height(handle, lrect);
 			} break;
@@ -628,8 +715,8 @@ _expose_upper(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_lower_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [4] = { 1, 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 4, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
+	const d2tk_coord_t frac [5] = { 1, 1, 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 5, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -652,7 +739,11 @@ _expose_lower_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 3:
 			{
-				// nothing
+				_expose_image_open(handle, lrect);
+			} break;
+			case 4:
+			{
+				// nothing to do
 			} break;
 		}
 	}
@@ -908,6 +999,7 @@ cleanup(LV2UI_Handle instance)
 {
 	plughandle_t *handle = instance;
 
+	d2tk_util_kill(&handle->kid);
 	d2tk_frontend_free(handle->dpugl);
 
 	unlink(handle->template);
