@@ -22,6 +22,7 @@
 extern "C" {
 #endif
 
+#include "config.h"
 #include <d2tk/d2tk.h>
 
 #if D2TK_SPAWN

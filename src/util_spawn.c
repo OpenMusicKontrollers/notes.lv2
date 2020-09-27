@@ -19,7 +19,10 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <sched.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 
 #include <d2tk/util.h>
 
