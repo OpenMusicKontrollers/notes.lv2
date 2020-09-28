@@ -685,9 +685,11 @@ static inline void
 _expose_upper(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
-	static const char lbl [] = "Text";
+	char lbl [PATH_MAX];
+	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Text • %s",
+		handle->template);
 
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	D2TK_BASE_FRAME(base, rect, lbl_len, lbl, frm)
 	{
 		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
 
@@ -749,13 +751,26 @@ _expose_lower_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
+static const char *
+_image_basename(plughandle_t *handle)
+{
+	if(_image_invalid(handle))
+	{
+		return "";
+	}
+
+	return basename(handle->state.image);
+}
+
 static inline void
 _expose_lower(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
-	static const char lbl [] = "Image";
+	char lbl [PATH_MAX];
+	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Image • %s",
+		_image_basename(handle));
 
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	D2TK_BASE_FRAME(base, rect, lbl_len, lbl, frm)
 	{
 		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
 
