@@ -278,10 +278,13 @@ _clone(void *data)
 	signal(SIGSTOP, SIG_DFL);
 	signal(SIGCONT, SIG_DFL);
 
-	putenv("TERM=xterm-256color");
-	//putenv("COLORTERM=truecolor");
+	char *envp [] = {
+		"TERM=xterm-256color",
+		//"COLORTERM=truecolor",
+		NULL
+	};
 
-	execvp(clone_data->argv[0], clone_data->argv);
+	execvpe(clone_data->argv[0], clone_data->argv, envp);
 	fprintf(stderr_save, "cannot exec(%s) - %s\n", clone_data->argv[0], strerror(errno));
 	_exit(EXIT_FAILURE);
 
