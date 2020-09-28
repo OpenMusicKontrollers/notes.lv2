@@ -84,6 +84,26 @@ notes:fontHeight
 	lv2:minimum 10 ;
 	lv2:maximum 25 ;
 	units:unit notes:px .
+notes:imageMaximized
+	a lv2:Parameter ;
+	rdfs:range atom:Bool ;
+	rdfs:label "Image widget maximization" ;
+	rdfs:comment "get/set image widget maximization" .
+notes:textMaximized
+	a lv2:Parameter ;
+	rdfs:range atom:Bool ;
+	rdfs:label "Text widget maximization" ;
+	rdfs:comment "get/set text widget maximization" .
+notes:imageMinimized
+	a lv2:Parameter ;
+	rdfs:range atom:Bool ;
+	rdfs:label "Image widget maximization" ;
+	rdfs:comment "get/set image widget maximization" .
+notes:textMinimized
+	a lv2:Parameter ;
+	rdfs:range atom:Bool ;
+	rdfs:label "Text widget maximization" ;
+	rdfs:comment "get/set text widget maximization" .
 
 notes:notes
 	a lv2:Plugin ,
@@ -120,10 +140,18 @@ notes:notes
 	patch:writable
 		notes:text ,
 		notes:image ,
-		notes:fontHeight ;
+		notes:fontHeight ,
+		notes:imageMaximized ,
+		notes:textMaximized ,
+		notes:imageMinimized ,
+		notes:textMinimized ;
 
 	state:state [
 		notes:text "# Notes" ;
 		notes:image <> ;
-		notes:fontHeight "16"^^xsd:int
+		notes:fontHeight "16"^^xsd:int ;
+		notes:imageMaximized false ;
+		notes:textMaximized false ;
+		notes:imageMinimized false ;
+		notes:textMinimized false ;
 	] .

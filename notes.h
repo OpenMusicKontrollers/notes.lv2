@@ -44,23 +44,31 @@
 #define NOTES_PREFIX NOTES_URI "#"
 
 // plugin uris
-#define NOTES__notes         NOTES_PREFIX "notes"
+#define NOTES__notes          NOTES_PREFIX "notes"
 
 // plugin UI uris
-#define NOTES__ui            NOTES_PREFIX "ui"
+#define NOTES__ui             NOTES_PREFIX "ui"
 
 // param uris
-#define NOTES__text          NOTES_PREFIX "text"
-#define NOTES__image         NOTES_PREFIX "image"
-#define NOTES__fontHeight    NOTES_PREFIX "fontHeight"
+#define NOTES__text           NOTES_PREFIX "text"
+#define NOTES__image          NOTES_PREFIX "image"
+#define NOTES__fontHeight     NOTES_PREFIX "fontHeight"
+#define NOTES__imageMaximized NOTES_PREFIX "imageMaximized"
+#define NOTES__textMaximized  NOTES_PREFIX "textMaximized"
+#define NOTES__imageMinimized NOTES_PREFIX "imageMinimized"
+#define NOTES__textMinimized  NOTES_PREFIX "textMinimized"
 
-#define MAX_NPROPS 3
+#define MAX_NPROPS 7
 #define CODE_SIZE 0x10000 // 64 K
 
 typedef struct _plugstate_t plugstate_t;
 
 struct _plugstate_t {
 	int32_t font_height;
+	int32_t image_maximized;
+	int32_t text_maximized;
+	int32_t image_minimized;
+	int32_t text_minimized;
 	char image [PATH_MAX];
 	char text [CODE_SIZE];
 };

@@ -66,6 +66,26 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, image),
 		.type = LV2_ATOM__Path,
 		.max_size = PATH_MAX
+	},
+	{
+		.property = NOTES__imageMaximized,
+		.offset = offsetof(plugstate_t, image_maximized),
+		.type = LV2_ATOM__Bool
+	},
+	{
+		.property = NOTES__textMaximized,
+		.offset = offsetof(plugstate_t, text_maximized),
+		.type = LV2_ATOM__Bool
+	},
+	{
+		.property = NOTES__imageMinimized,
+		.offset = offsetof(plugstate_t, image_minimized),
+		.type = LV2_ATOM__Bool
+	},
+	{
+		.property = NOTES__textMinimized,
+		.offset = offsetof(plugstate_t, text_minimized),
+		.type = LV2_ATOM__Bool
 	}
 };
 

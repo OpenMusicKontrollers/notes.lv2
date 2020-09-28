@@ -183,6 +183,26 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, image),
 		.type = LV2_ATOM__Path,
 		.max_size = PATH_MAX
+	},
+	{
+		.property = NOTES__imageMaximized,
+		.offset = offsetof(plugstate_t, image_maximized),
+		.type = LV2_ATOM__Bool
+	},
+	{
+		.property = NOTES__textMaximized,
+		.offset = offsetof(plugstate_t, text_maximized),
+		.type = LV2_ATOM__Bool
+	},
+	{
+		.property = NOTES__imageMinimized,
+		.offset = offsetof(plugstate_t, image_minimized),
+		.type = LV2_ATOM__Bool
+	},
+	{
+		.property = NOTES__textMinimized,
+		.offset = offsetof(plugstate_t, text_minimized),
+		.type = LV2_ATOM__Bool
 	}
 };
 
@@ -700,8 +720,9 @@ _expose_upper(plughandle_t *handle, const d2tk_rect_t *rect)
 	{
 		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
 
+		const unsigned num = handle->state.text_maximized ? 1 : 2;
 		const d2tk_coord_t frac [2] = { 0, handle->footer_height };
-		D2TK_BASE_LAYOUT(frect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+		D2TK_BASE_LAYOUT(frect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 		{
 			const unsigned k = d2tk_layout_get_index(lay);
 			const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -781,8 +802,9 @@ _expose_lower(plughandle_t *handle, const d2tk_rect_t *rect)
 	{
 		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
 
+		const unsigned num = handle->state.image_maximized ? 1 : 2;
 		const d2tk_coord_t frac [2] = { 0, handle->footer_height };
-		D2TK_BASE_LAYOUT(frect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+		D2TK_BASE_LAYOUT(frect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 		{
 			const unsigned k = d2tk_layout_get_index(lay);
 			const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -822,8 +844,11 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 
 	d2tk_base_set_style(base, &style);
 
+	const unsigned num = 1
+		+ !handle->state.text_minimized
+		+ !handle->state.image_minimized;
 	const d2tk_coord_t frac [3] = { handle->header_height, 0, 0 };
-	D2TK_BASE_LAYOUT(&rect, 3, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	D2TK_BASE_LAYOUT(&rect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -836,7 +861,14 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 			} break;
 			case 1:
 			{
-				_expose_upper(handle, lrect);
+				if(!handle->state.text_minimized)
+				{
+					_expose_upper(handle, lrect);
+				}
+				else
+				{
+					_expose_lower(handle, lrect);
+				}
 			} break;
 			case 2:
 			{
