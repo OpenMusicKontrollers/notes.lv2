@@ -82,6 +82,9 @@ struct _plughandle_t {
 
 	int done;
 	int kid;
+
+	bool disable_image_load;
+	bool disable_text_load;
 };
 
 static inline void
@@ -291,7 +294,7 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char lbl [] = "load";
 
-	if(!handle->request)
+	if(!handle->request || handle->disable_image_load)
 	{
 		return;
 	}
@@ -305,9 +308,11 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		const LV2UI_Request_Value_Status status = handle->request->request(
 			handle->request->handle, key, type, NULL);
 
-		if(status != LV2UI_REQUEST_VALUE_SUCCESS)
+		if(  (status != LV2UI_REQUEST_VALUE_SUCCESS)
+			&& (status != LV2UI_REQUEST_VALUE_BUSY) )
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
+			handle->disable_image_load = true;
 		}
 	}
 }
@@ -541,7 +546,7 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char lbl [] = "load";
 
-	if(!handle->request)
+	if(!handle->request || handle->disable_text_load)
 	{
 		return;
 	}
@@ -555,9 +560,11 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		const LV2UI_Request_Value_Status status = handle->request->request(
 			handle->request->handle, key, type, NULL);
 
-		if(status != LV2UI_REQUEST_VALUE_SUCCESS)
+		if(  (status != LV2UI_REQUEST_VALUE_SUCCESS)
+			&& (status != LV2UI_REQUEST_VALUE_BUSY) )
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
+			handle->disable_text_load = true;
 		}
 	}
 }
