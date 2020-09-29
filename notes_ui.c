@@ -67,6 +67,8 @@ struct _plughandle_t {
 	LV2_URID urid_text;
 	LV2_URID urid_fontHeight;
 	LV2_URID urid_image;
+	LV2_URID urid_imageMinimized;
+	LV2_URID urid_textMinimized;
 
 	bool reinit;
 	char template [24];
@@ -82,12 +84,9 @@ struct _plughandle_t {
 
 	int done;
 	int kid;
-
-	bool disable_image_load;
-	bool disable_text_load;
 };
 
-static inline void
+static void
 _update_font_height(plughandle_t *handle)
 {
 	handle->font_height = handle->state.font_height * handle->scale;
@@ -185,16 +184,6 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.max_size = PATH_MAX
 	},
 	{
-		.property = NOTES__imageMaximized,
-		.offset = offsetof(plugstate_t, image_maximized),
-		.type = LV2_ATOM__Bool
-	},
-	{
-		.property = NOTES__textMaximized,
-		.offset = offsetof(plugstate_t, text_maximized),
-		.type = LV2_ATOM__Bool
-	},
-	{
 		.property = NOTES__imageMinimized,
 		.offset = offsetof(plugstate_t, image_minimized),
 		.type = LV2_ATOM__Bool
@@ -256,7 +245,7 @@ _message_get(plughandle_t *handle, LV2_URID key)
 	ser_atom_deinit(&ser);
 }
 
-static inline void
+static void
 _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
@@ -289,7 +278,7 @@ _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
-static inline void
+static void
 _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
@@ -306,7 +295,7 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 #ifdef _LV2_HAS_REQUEST_VALUE
-static inline void
+static void
 _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
@@ -314,7 +303,7 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char lbl [] = "load";
 
-	if(!handle->request || handle->disable_image_load)
+	if(!handle->request)
 	{
 		return;
 	}
@@ -332,7 +321,6 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 			&& (status != LV2UI_REQUEST_VALUE_BUSY) )
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
-			handle->disable_image_load = true;
 		}
 	}
 }
@@ -366,13 +354,13 @@ _image_invalid(plughandle_t *handle)
 		|| strcasestr(handle->state.image, "state.ttl");
 }
 
-static inline void
+static void
 _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "clear";
+	static const char path [] = "cancel.png";
 	static const char none [] = "";
 
 	if(_image_invalid(handle))
@@ -380,14 +368,13 @@ _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 		return;
 	}
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		_update_image(handle, none, sizeof(none));
 	}
 }
 
-static inline void
+static void
 _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
@@ -445,42 +432,8 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
-static inline void
-_expose_image_open(plughandle_t *handle, const d2tk_rect_t *rect)
-{
-	d2tk_frontend_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
-
-	static const char lbl [] = "open";
-
-	if(_image_invalid(handle))
-	{
-		return;
-	}
-
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
-	{
-		char *argv [] = {
-			"xdg-open",
-			handle->state.image,
-			NULL
-		};
-
-		d2tk_util_kill(&handle->kid);
-		handle->kid = d2tk_util_spawn(argv);
-		if(handle->kid <= 0)
-		{
-			lv2_log_error(&handle->logger, "[%s] failed to spawn: %s '%s'", __func__,
-				argv[0], argv[1]);
-		}
-	}
-
-	d2tk_util_wait(&handle->kid);
-}
-
-static inline void
-_expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
+static void
+_expose_image_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
@@ -522,8 +475,8 @@ _expose_image(plughandle_t *handle, const d2tk_rect_t *rect)
  * sublime3      (needs to be started with -w)
  */
 
-static inline void
-_expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
+static void
+_expose_text_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
@@ -558,7 +511,7 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 #ifdef _LV2_HAS_REQUEST_VALUE
-static inline void
+static void
 _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
@@ -566,7 +519,7 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char lbl [] = "load";
 
-	if(!handle->request || handle->disable_text_load)
+	if(!handle->request)
 	{
 		return;
 	}
@@ -584,7 +537,6 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 			&& (status != LV2UI_REQUEST_VALUE_BUSY) )
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
-			handle->disable_text_load = true;
 		}
 	}
 }
@@ -610,23 +562,22 @@ _update_text(plughandle_t *handle, const char *txt, size_t txt_len)
 	_message_set_key(handle, handle->urid_text);
 }
 
-static inline void
+static void
 _expose_text_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "clear";
+	static const char path [] = "cancel.png";
 	static const char none [] = "";
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		_update_text(handle, none, sizeof(none) - 1);
 	}
 }
 
-static inline void
+static void
 _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
@@ -642,16 +593,23 @@ _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
-static inline void
-_expose_text_open(plughandle_t *handle, const d2tk_rect_t *rect)
+static const char *
+_text_basename(plughandle_t *handle)
 {
-	d2tk_frontend_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+	return basename(handle->template);
+}
 
-	static const char lbl [] = "open";
+static void
+_expose_text_link(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	char lbl [PATH_MAX];
+	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "%s",
+		_text_basename(handle));
+
+	if(d2tk_base_link_is_changed(base, D2TK_ID, lbl_len, lbl, .5f,
+		rect, D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT))
 	{
 		char *argv [] = {
 			"xdg-open",
@@ -671,11 +629,24 @@ _expose_text_open(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_util_wait(&handle->kid);
 }
 
-static inline void
-_expose_upper_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+static void
+_expose_text_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [5] = { 1, 1, 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 5, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
+
+	bool visible = !handle->state.text_minimized;
+	if(d2tk_base_toggle_is_changed(base, D2TK_ID, rect, &visible))
+	{
+		handle->state.text_minimized = !handle->state.text_minimized;
+		_message_set_key(handle, handle->urid_textMinimized);
+	}
+}
+
+static void
+_expose_text_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [6] = { 0, 0, rect->h, rect->h, rect->h, rect->h };
+	D2TK_BASE_LAYOUT(rect, 6, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -684,96 +655,27 @@ _expose_upper_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-#ifdef _LV2_HAS_REQUEST_VALUE
-				_expose_text_load(handle, lrect);
-#endif
+				_expose_text_link(handle, lrect);
 			} break;
 			case 1:
-			{
-				_expose_text_clear(handle, lrect);
-			} break;
-			case 2:
-			{
-				_expose_text_copy(handle, lrect);
-			} break;
-			case 3:
-			{
-				_expose_text_open(handle, lrect);
-			} break;
-			case 4:
 			{
 				_expose_font_height(handle, lrect);
 			} break;
-		}
-	}
-}
-
-static inline void
-_expose_upper(plughandle_t *handle, const d2tk_rect_t *rect)
-{
-	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
-	char lbl [PATH_MAX];
-	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Text • %s",
-		handle->template);
-
-	D2TK_BASE_FRAME(base, rect, lbl_len, lbl, frm)
-	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
-
-		const unsigned num = handle->state.text_maximized ? 1 : 2;
-		const d2tk_coord_t frac [2] = { 0, handle->footer_height };
-		D2TK_BASE_LAYOUT(frect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
-		{
-			const unsigned k = d2tk_layout_get_index(lay);
-			const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
-
-			switch(k)
-			{
-				case 0:
-				{
-					_expose_term(handle, lrect);
-				} break;
-				case 1:
-				{
-					_expose_upper_footer(handle, lrect);
-				} break;
-			}
-		}
-	}
-}
-
-static inline void
-_expose_lower_footer(plughandle_t *handle, const d2tk_rect_t *rect)
-{
-	const d2tk_coord_t frac [5] = { 1, 1, 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 5, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
-	{
-		const unsigned k = d2tk_layout_get_index(lay);
-		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
-
-		switch(k)
-		{
-			case 0:
-			{
-#ifdef _LV2_HAS_REQUEST_VALUE
-				_expose_image_load(handle, lrect);
-#endif
-			} break;
-			case 1:
-			{
-				_expose_image_clear(handle, lrect);
-			} break;
 			case 2:
 			{
-				_expose_image_copy(handle, lrect);
+				_expose_text_clear(handle, lrect);
 			} break;
 			case 3:
 			{
-				_expose_image_open(handle, lrect);
+				_expose_text_copy(handle, lrect);
 			} break;
 			case 4:
 			{
-				// nothing to do
+				_expose_text_load(handle, lrect);
+			} break;
+			case 5:
+			{
+				_expose_text_minimize(handle, lrect);
 			} break;
 		}
 	}
@@ -790,36 +692,112 @@ _image_basename(plughandle_t *handle)
 	return basename(handle->state.image);
 }
 
-static inline void
-_expose_lower(plughandle_t *handle, const d2tk_rect_t *rect)
+static void
+_expose_image_link(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
+
 	char lbl [PATH_MAX];
-	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Image • %s",
+	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "%s",
 		_image_basename(handle));
 
-	D2TK_BASE_FRAME(base, rect, lbl_len, lbl, frm)
+	if(d2tk_base_link_is_changed(base, D2TK_ID, lbl_len, lbl, .5f,
+		rect, D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT))
 	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+		char *argv [] = {
+			"xdg-open",
+			handle->state.image,
+			NULL
+		};
 
-		const unsigned num = handle->state.image_maximized ? 1 : 2;
-		const d2tk_coord_t frac [2] = { 0, handle->footer_height };
-		D2TK_BASE_LAYOUT(frect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+		d2tk_util_kill(&handle->kid);
+		handle->kid = d2tk_util_spawn(argv);
+		if(handle->kid <= 0)
 		{
-			const unsigned k = d2tk_layout_get_index(lay);
-			const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+			lv2_log_error(&handle->logger, "[%s] failed to spawn: %s '%s'", __func__,
+				argv[0], argv[1]);
+		}
+	}
 
-			switch(k)
+	d2tk_util_wait(&handle->kid);
+}
+
+static void
+_expose_image_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
+
+	bool visible = !handle->state.image_minimized;
+	if(d2tk_base_toggle_is_changed(base, D2TK_ID, rect, &visible))
+	{
+		handle->state.image_minimized = !handle->state.image_minimized;
+		_message_set_key(handle, handle->urid_imageMinimized);
+	}
+}
+
+static void
+_expose_image_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [5] = { 0, rect->h, rect->h, rect->h, rect->h };
+	D2TK_BASE_LAYOUT(rect, 5, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
+	{
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+		switch(k)
+		{
+			case 0:
 			{
-				case 0:
+				_expose_image_link(handle, lrect);
+			} break;
+			case 1:
+			{
+				_expose_image_clear(handle, lrect);
+			} break;
+			case 2:
+			{
+				_expose_image_copy(handle, lrect);
+			} break;
+			case 3:
+			{
+				_expose_image_load(handle, lrect);
+			} break;
+			case 4:
+			{
+				_expose_image_minimize(handle, lrect);
+			} break;
+		}
+	}
+}
+
+static void
+_expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [2] = {
+		handle->state.image_minimized ? 1 : 0,
+		handle->state.text_minimized ? 1 : 0
+	};
+	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	{
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+		switch(k)
+		{
+			case 0:
+			{
+				if(!handle->state.image_minimized)
 				{
-					_expose_image(handle, lrect);
-				} break;
-				case 1:
+					_expose_image_body(handle, lrect);
+				}
+			} break;
+			case 1:
+			{
+				if(!handle->state.text_minimized)
 				{
-					_expose_lower_footer(handle, lrect);
-				} break;
-			}
+					_expose_text_body(handle, lrect);
+				}
+			} break;
 		}
 	}
 }
@@ -844,11 +822,13 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 
 	d2tk_base_set_style(base, &style);
 
-	const unsigned num = 1
-		+ !handle->state.text_minimized
-		+ !handle->state.image_minimized;
-	const d2tk_coord_t frac [3] = { handle->header_height, 0, 0 };
-	D2TK_BASE_LAYOUT(&rect, num, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	const d2tk_coord_t frac [4] = {
+		handle->header_height,
+		handle->footer_height,
+		0,
+		handle->footer_height
+	};
+	D2TK_BASE_LAYOUT(&rect, 4, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -861,18 +841,15 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 			} break;
 			case 1:
 			{
-				if(!handle->state.text_minimized)
-				{
-					_expose_upper(handle, lrect);
-				}
-				else
-				{
-					_expose_lower(handle, lrect);
-				}
+				_expose_image_footer(handle, lrect);
 			} break;
 			case 2:
 			{
-				_expose_lower(handle, lrect);
+				_expose_body(handle, lrect);
+			} break;
+			case 3:
+			{
+				_expose_text_footer(handle, lrect);
 			} break;
 		}
 	}
@@ -962,6 +939,10 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		NOTES__fontHeight);
 	handle->urid_image = handle->map->map(handle->map->handle,
 		NOTES__image);
+	handle->urid_imageMinimized = handle->map->map(handle->map->handle,
+		NOTES__imageMinimized);
+	handle->urid_textMinimized = handle->map->map(handle->map->handle,
+		NOTES__textMinimized);
 
 	if(!props_init(&handle->props, plugin_uri,
 		defs, MAX_NPROPS, &handle->state, &handle->stash,

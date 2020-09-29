@@ -118,6 +118,13 @@ ui_ttl = configure_file(
 	install : true,
 	install_dir : inst_dir)
 
+cancel_png = configure_file(
+	input : 'cancel.png',
+	output : 'cancel.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+
 if not use_fontconfig.enabled()
 	fira_sans_bold_ttf = d2tk.get_variable('fira_sans_bold_ttf')
 	fira_code_bold_ttf = d2tk.get_variable('fira_code_bold_ttf')
