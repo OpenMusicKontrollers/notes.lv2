@@ -670,7 +670,9 @@ _expose_text_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 4:
 			{
+#ifdef _LV2_HAS_REQUEST_VALUE
 				_expose_text_load(handle, lrect);
+#endif
 			} break;
 			case 5:
 			{
@@ -762,7 +764,9 @@ _expose_image_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 3:
 			{
+#ifdef _LV2_HAS_REQUEST_VALUE
 				_expose_image_load(handle, lrect);
+#endif
 			} break;
 			case 4:
 			{
