@@ -118,9 +118,39 @@ ui_ttl = configure_file(
 	install : true,
 	install_dir : inst_dir)
 
-cancel_png = configure_file(
-	input : 'cancel.png',
-	output : 'cancel.png',
+backspace_png = configure_file(
+	input : 'backspace.png',
+	output : 'backspace.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+document_png = configure_file(
+	input : 'document.png',
+	output : 'document.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+documents_png = configure_file(
+	input : 'documents.png',
+	output : 'documents.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+eye_off_png = configure_file(
+	input : 'eye-off.png',
+	output : 'eye-off.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+eye_png = configure_file(
+	input : 'eye.png',
+	output : 'eye.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+open_png = configure_file(
+	input : 'open.png',
+	output : 'open.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)

@@ -301,15 +301,14 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "load";
+	static const char path [] = "open.png";
 
 	if(!handle->request)
 	{
 		return;
 	}
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		const LV2_URID key = handle->urid_image;
 		const LV2_URID type = handle->forge.Path;
@@ -360,7 +359,7 @@ _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "cancel.png";
+	static const char path [] = "backspace.png";
 	static const char none [] = "";
 
 	if(_image_invalid(handle))
@@ -380,15 +379,14 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "copy";
+	static const char path [] = "documents.png";
 
 	if(_image_invalid(handle))
 	{
 		return;
 	}
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		const int fd = open(handle->state.image, O_RDONLY);
 		if(fd == -1)
@@ -517,15 +515,14 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "load";
+	static const char path [] = "open.png";
 
 	if(!handle->request)
 	{
 		return;
 	}
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		const LV2_URID key = handle->urid_text;
 		const LV2_URID type = handle->forge.String;
@@ -568,7 +565,7 @@ _expose_text_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "cancel.png";
+	static const char path [] = "document.png";
 	static const char none [] = "";
 
 	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
@@ -583,10 +580,9 @@ _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [] = "copy";
+	static const char path [] = "documents.png";
 
-	if(d2tk_base_button_label_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
-		D2TK_ALIGN_CENTERED, rect))
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		d2tk_frontend_set_clipboard(dpugl, "UTF8_STRING",
 			handle->state.text, strlen(handle->state.text) + 1);
@@ -634,8 +630,11 @@ _expose_text_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 
-	bool visible = !handle->state.text_minimized;
-	if(d2tk_base_toggle_is_changed(base, D2TK_ID, rect, &visible))
+	static const char *path [2] = { "eye-off.png", "eye.png" };
+
+	bool visible = !handle->state.image_minimized;
+	if(d2tk_base_toggle_label_image_is_changed(base, D2TK_ID, 0, NULL, D2TK_ALIGN_CENTERED,
+		-1, path[visible], rect, &visible))
 	{
 		handle->state.text_minimized = !handle->state.text_minimized;
 		_message_set_key(handle, handle->urid_textMinimized);
@@ -684,11 +683,6 @@ _expose_text_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 static const char *
 _image_basename(plughandle_t *handle)
 {
-	if(_image_invalid(handle))
-	{
-		return "";
-	}
-
 	return basename(handle->state.image);
 }
 
@@ -696,6 +690,11 @@ static void
 _expose_image_link(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
+
+	if(_image_invalid(handle))
+	{
+		return;
+	}
 
 	char lbl [PATH_MAX];
 	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "%s",
@@ -727,8 +726,11 @@ _expose_image_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 
+	static const char *path [2] = { "eye-off.png", "eye.png" };
+
 	bool visible = !handle->state.image_minimized;
-	if(d2tk_base_toggle_is_changed(base, D2TK_ID, rect, &visible))
+	if(d2tk_base_toggle_label_image_is_changed(base, D2TK_ID, 0, NULL, D2TK_ALIGN_CENTERED,
+		-1, path[visible], rect, &visible))
 	{
 		handle->state.image_minimized = !handle->state.image_minimized;
 		_message_set_key(handle, handle->urid_imageMinimized);
