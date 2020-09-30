@@ -21,6 +21,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ctype.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
@@ -413,21 +414,47 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 		read(fd, buf, buf_len);
 		close(fd);
 
-		lv2_log_note(&handle->logger, "[%s] copying image: %zu", __func__, buf_len);
-
-		if(  strcasestr(handle->state.image, ".jpg")
-			|| strcasestr(handle->state.image, ".jpeg"))
+		const char *suffix = strrchr(handle->state.image, '.');
+		if(!suffix)
 		{
-			d2tk_frontend_set_clipboard(dpugl, "image/jpeg", buf, buf_len);
+			lv2_log_note(&handle->logger, "[%s] unknown image type", __func__);
+			return;
 		}
-		else if(strcasestr(handle->state.image, ".png"))
+
+		suffix++;
+
+		char mime [32];
+
+		if(!strcasecmp(suffix, "jpg"))
 		{
-			d2tk_frontend_set_clipboard(dpugl, "image/png", buf, buf_len);
+			snprintf(mime, sizeof(mime), "image/jpeg");
+		}
+		else if(!strcasecmp(suffix, "jpeg")
+			|| !strcasecmp(suffix, "png")
+			|| !strcasecmp(suffix, "tga")
+			|| !strcasecmp(suffix, "bmp")
+			|| !strcasecmp(suffix, "psd")
+			|| !strcasecmp(suffix, "gif")
+			|| !strcasecmp(suffix, "hdr")
+			|| !strcasecmp(suffix, "pic")
+			|| !strcasecmp(suffix, "ppm")
+			|| !strcasecmp(suffix, "pgm"))
+		{
+			snprintf(mime, sizeof(mime), "image/%s", suffix);
 		}
 		else
 		{
 			lv2_log_error(&handle->logger, "[%s] image type not supported", __func__);
+			return;
 		}
+
+		for(unsigned i = 0; i < strlen(mime); i++)
+		{
+			mime[i] = tolower(mime[i]);
+		}
+
+		lv2_log_note(&handle->logger, "[%s] copying image as '%s'", __func__, mime);
+		d2tk_frontend_set_clipboard(dpugl, mime, buf, buf_len);
 	}
 }
 
