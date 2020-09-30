@@ -370,6 +370,7 @@ _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
 		_update_image(handle, none, sizeof(none));
+		d2tk_base_clear_focus(base);
 	}
 }
 
@@ -632,7 +633,7 @@ _expose_text_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char *path [2] = { "eye-off.png", "eye.png" };
 
-	bool visible = !handle->state.image_minimized;
+	bool visible = !handle->state.text_minimized;
 	if(d2tk_base_toggle_label_image_is_changed(base, D2TK_ID, 0, NULL, D2TK_ALIGN_CENTERED,
 		-1, path[visible], rect, &visible))
 	{
