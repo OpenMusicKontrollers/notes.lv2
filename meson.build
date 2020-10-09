@@ -32,6 +32,7 @@ cc = meson.get_compiler('c')
 lv2_validate = find_program('lv2_validate', native : true, required : false)
 sord_validate = find_program('sord_validate', native : true, required : false)
 lv2lint = find_program('lv2lint', required : false)
+xdg_open = find_program('xdg-open', required : true)
 
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.16.0')

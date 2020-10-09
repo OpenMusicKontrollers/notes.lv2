@@ -43,16 +43,24 @@ folder out of the platform folder of the downloaded package into your
 * [Gitlab](https://gitlab.com/OpenMusicKontrollers/notes.lv2)
 * [Github](https://github.com/OpenMusicKontrollers/notes.lv2)
 
-#### Plugins
+### Plugins
 
 ![Screenshot](/screenshots/screenshot_1.png)
 
 #### Dependencies
 
+##### Mandatory
+
 * [LV2](http://lv2plug.in) (LV2 Plugin Standard)
 * [OpenGl](https://www.opengl.org) (OpenGl)
 * [GLEW](http://glew.sourceforge.net) (GLEW)
 * [VTERM](http://www.leonerd.org.uk/code/libvterm) (Virtual terminal emulator)
+* [XDG-UTILS](https://www.freedesktop.org/wiki/Software/xdg-utils/) (Freedesktop tools, namely xdg-open)
+
+##### Optional
+
+* [FONTCONFIG](https://www.fontconfig.org/) (Font configuration/access library)
+* [FIRA](https://en.wikipedia.org/wiki/Fira_(typeface) (Fira typeface)
 
 #### Build / install
 
@@ -63,6 +71,10 @@ folder out of the platform folder of the downloaded package into your
 	ninja -j4
 	ninja test
 	sudo ninja install
+
+If you want to build with embedded Fira font, just disable fontconfig support
+(-Duse-fontconfig=diabled). If fontconfig support is enabled, Fira font MUST
+be present on your system.
 
 #### UI
 
