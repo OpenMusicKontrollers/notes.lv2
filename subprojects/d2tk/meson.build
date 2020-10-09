@@ -97,7 +97,7 @@ endif
 util_dep = cc.find_library('util',
 	required : use_vterm)
 vterm_dep = dependency('vterm',
-	version : '>=0.0',
+	version : '>=0.1',
 	static : static_link,
 	required : use_vterm)
 if not use_frontend_fbdev.enabled()
