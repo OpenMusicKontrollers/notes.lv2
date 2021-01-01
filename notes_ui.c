@@ -79,6 +79,7 @@ struct _plughandle_t {
 	float scale;
 	d2tk_coord_t header_height;
 	d2tk_coord_t footer_height;
+	d2tk_coord_t tip_height;
 	d2tk_coord_t font_height;
 
 	uint32_t max_red;
@@ -303,13 +304,17 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char path [] = "open.png";
+	static const char tip [] = "load from file";
 
 	if(!handle->request)
 	{
 		return;
 	}
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
 	{
 		const LV2_URID key = handle->urid_image;
 		const LV2_URID type = handle->forge.Path;
@@ -322,6 +327,10 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
 		}
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
 	}
 }
 #endif
@@ -362,16 +371,24 @@ _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 
 	static const char path [] = "backspace.png";
 	static const char none [] = "";
+	static const char tip [] = "clear";
 
 	if(_image_invalid(handle))
 	{
 		return;
 	}
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
 	{
 		_update_image(handle, none, sizeof(none));
 		d2tk_base_clear_focus(base);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
 	}
 }
 
@@ -382,13 +399,17 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char path [] = "documents.png";
+	static const char tip [] = "copy to clipboard";
 
 	if(_image_invalid(handle))
 	{
 		return;
 	}
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
 	{
 		const int fd = open(handle->state.image, O_RDONLY);
 		if(fd == -1)
@@ -455,6 +476,10 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 
 		lv2_log_note(&handle->logger, "[%s] copying image as '%s'", __func__, mime);
 		d2tk_frontend_set_clipboard(dpugl, mime, buf, buf_len);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
 	}
 }
 
@@ -544,13 +569,17 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char path [] = "open.png";
+	static const char tip [] = "load from file";
 
 	if(!handle->request)
 	{
 		return;
 	}
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
 	{
 		const LV2_URID key = handle->urid_text;
 		const LV2_URID type = handle->forge.String;
@@ -563,6 +592,10 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
 		}
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
 	}
 }
 #endif
@@ -593,12 +626,20 @@ _expose_text_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "document.png";
+	static const char path [] = "backspace.png";
 	static const char none [] = "";
+	static const char tip [] = "clear";
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
 	{
 		_update_text(handle, none, sizeof(none) - 1);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
 	}
 }
 
@@ -609,11 +650,19 @@ _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char path [] = "documents.png";
+	static const char tip [] = "copy to clipboard";
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
 	{
 		d2tk_frontend_set_clipboard(dpugl, "UTF8_STRING",
 			handle->state.text, strlen(handle->state.text) + 1);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
 	}
 }
 
@@ -628,12 +677,15 @@ _expose_text_link(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 
+	static const char tip [] = "open externally";
 	char lbl [PATH_MAX];
 	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "%s",
 		_text_basename(handle));
 
-	if(d2tk_base_link_is_changed(base, D2TK_ID, lbl_len, lbl, .5f,
-		rect, D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT))
+	const d2tk_state_t state = d2tk_base_link(base, D2TK_ID, lbl_len, lbl, .5f,
+		rect, D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
+
+	if(d2tk_state_is_changed(state))
 	{
 		char *argv [] = {
 			"xdg-open",
@@ -649,6 +701,10 @@ _expose_text_link(plughandle_t *handle, const d2tk_rect_t *rect)
 				argv[0], argv[1]);
 		}
 	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
+	}
 
 	d2tk_util_wait(&handle->kid);
 }
@@ -659,13 +715,20 @@ _expose_text_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 
 	static const char *path [2] = { "eye-off.png", "eye.png" };
+	static const char tip [2][5] = { "show", "hide" };
 
 	bool visible = !handle->state.text_minimized;
-	if(d2tk_base_toggle_label_image_is_changed(base, D2TK_ID, 0, NULL, D2TK_ALIGN_CENTERED,
-		-1, path[visible], rect, &visible))
+	const d2tk_state_t state = d2tk_base_toggle_label_image(base, D2TK_ID,
+		0, NULL, D2TK_ALIGN_CENTERED, -1, path[visible], rect, &visible);
+
+	if(d2tk_state_is_changed(state))
 	{
 		handle->state.text_minimized = !handle->state.text_minimized;
 		_message_set_key(handle, handle->urid_textMinimized);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip[visible]), tip[visible], handle->tip_height);
 	}
 }
 
@@ -726,12 +789,15 @@ _expose_image_link(plughandle_t *handle, const d2tk_rect_t *rect)
 		return;
 	}
 
+	static const char tip [] = "open externally";
 	char lbl [PATH_MAX];
 	const size_t lbl_len = snprintf(lbl, sizeof(lbl), "%s",
 		_image_basename(handle));
 
-	if(d2tk_base_link_is_changed(base, D2TK_ID, lbl_len, lbl, .5f,
-		rect, D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT))
+	const d2tk_state_t state = d2tk_base_link(base, D2TK_ID, lbl_len, lbl, .5f,
+		rect, D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
+
+	if(d2tk_state_is_changed(state))
 	{
 		char *argv [] = {
 			"xdg-open",
@@ -747,6 +813,10 @@ _expose_image_link(plughandle_t *handle, const d2tk_rect_t *rect)
 				argv[0], argv[1]);
 		}
 	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
+	}
 
 	d2tk_util_wait(&handle->kid);
 }
@@ -757,13 +827,20 @@ _expose_image_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 
 	static const char *path [2] = { "eye-off.png", "eye.png" };
+	static const char tip [2][5] = { "show", "hide" };
 
 	bool visible = !handle->state.image_minimized;
-	if(d2tk_base_toggle_label_image_is_changed(base, D2TK_ID, 0, NULL, D2TK_ALIGN_CENTERED,
-		-1, path[visible], rect, &visible))
+	const d2tk_state_t state = d2tk_base_toggle_label_image(base, D2TK_ID,
+		0, NULL, D2TK_ALIGN_CENTERED, -1, path[visible], rect, &visible);
+
+	if(d2tk_state_is_changed(state))
 	{
 		handle->state.image_minimized = !handle->state.image_minimized;
 		_message_set_key(handle, handle->urid_imageMinimized);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip[visible]), tip[visible], handle->tip_height);
 	}
 }
 
@@ -1033,6 +1110,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	handle->header_height = 32 * handle->scale;
 	handle->footer_height = 32 * handle->scale;
+	handle->tip_height = 20 * handle->scale;
 
 	handle->state.font_height = 16;
 	_update_font_height(handle);
