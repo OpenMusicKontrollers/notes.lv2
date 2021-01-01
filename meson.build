@@ -78,14 +78,7 @@ glu_dep = dependency('glu',
 glew_dep = dependency('glew',
 	version : '>=2.1.0',
 	static : static_link,
-	required : false)
-if use_backend_nanovg.enabled() and not glew_dep.found()
-	# use embedded glew
-	glew_dep = declare_dependency(
-		compile_args : '-DGLEW_STATIC',
-		include_directories : include_directories('glew-2.1.0'),
-		sources : join_paths('glew-2.1.0', 'glew.c'))
-endif
+	required : use_backend_nanovg)
 if use_frontend_glfw.enabled()
 	glfw_dep = dependency('glfw3',
 		version : '>=3.3.0',
@@ -152,6 +145,7 @@ lib_srcs = [
 	join_paths('src', 'base_combo.c'),
 	join_paths('src', 'base_textfield.c'),
 	join_paths('src', 'base_label.c'),
+	join_paths('src', 'base_tooltip.c'),
 	join_paths('src', 'base_link.c'),
 	join_paths('src', 'base_dial.c'),
 	join_paths('src', 'base_spinner.c'),
