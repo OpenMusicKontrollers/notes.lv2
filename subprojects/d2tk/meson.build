@@ -76,7 +76,7 @@ glu_dep = dependency('glu',
 	static : static_link,
 	required : use_backend_nanovg)
 glew_dep = dependency('glew',
-	version : '>=2.1.0',
+	version : '>=2.0.0',
 	static : static_link,
 	required : use_backend_nanovg)
 if use_frontend_glfw.enabled()
