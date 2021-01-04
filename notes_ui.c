@@ -303,7 +303,7 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "open.png";
+	static const char path [] = "save.png";
 	static const char tip [] = "load from file";
 
 	if(!handle->request)
@@ -369,7 +369,7 @@ _expose_image_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "backspace.png";
+	static const char path [] = "delete.png";
 	static const char none [] = "";
 	static const char tip [] = "clear";
 
@@ -398,7 +398,7 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "documents.png";
+	static const char path [] = "copy.png";
 	static const char tip [] = "copy to clipboard";
 
 	if(_image_invalid(handle))
@@ -476,6 +476,68 @@ _expose_image_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 
 		lv2_log_note(&handle->logger, "[%s] copying image as '%s'", __func__, mime);
 		d2tk_frontend_set_clipboard(dpugl, mime, buf, buf_len);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
+	}
+}
+
+static void
+_expose_image_paste(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char path [] = "clipboard.png";
+	static const char tip [] = "paste from clipboard";
+
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
+	{
+		size_t txt_len = 0;
+		const char *mime = "image/png";
+		const char *txt = d2tk_frontend_get_clipboard(dpugl, &mime, &txt_len);
+
+		if(txt && txt_len && mime && strstr(mime, "image/"))
+		{
+			const char *suffix = strchr(mime, '/');
+			suffix += 1;
+
+			char template [24];
+			snprintf(template, sizeof(template), "/tmp/XXXXXX.%s", suffix);
+
+			const int fd = mkstemps(template, strlen(suffix) + 1);
+			if(fd == -1)
+			{
+				lv2_log_error(&handle->logger, "[%s] mkstemps failed: %s", __func__,
+					strerror(errno));
+			}
+			else
+			{
+				if(write(fd, txt, txt_len) == -1)
+				{
+					lv2_log_error(&handle->logger, "[%s] write failed %s", __func__,
+						strerror(errno));
+				}
+				else
+				{
+					_update_image(handle, template, strlen(template) + 1);
+
+					lv2_log_note(&handle->logger, "[%s] paste saved as %s", __func__,
+						template);
+				}
+
+				close(fd);
+			}
+		}
+		else
+		{
+			lv2_log_error(&handle->logger, "[%s] failed to paste image: %s", __func__,
+				mime);
+		}
 	}
 	if(d2tk_state_is_over(state))
 	{
@@ -568,7 +630,7 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "open.png";
+	static const char path [] = "save.png";
 	static const char tip [] = "load from file";
 
 	if(!handle->request)
@@ -626,7 +688,7 @@ _expose_text_clear(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "backspace.png";
+	static const char path [] = "delete.png";
 	static const char none [] = "";
 	static const char tip [] = "clear";
 
@@ -649,7 +711,7 @@ _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char path [] = "documents.png";
+	static const char path [] = "copy.png";
 	static const char tip [] = "copy to clipboard";
 
 	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
@@ -659,6 +721,40 @@ _expose_text_copy(plughandle_t *handle, const d2tk_rect_t *rect)
 	{
 		d2tk_frontend_set_clipboard(dpugl, "UTF8_STRING",
 			handle->state.text, strlen(handle->state.text) + 1);
+	}
+	if(d2tk_state_is_over(state))
+	{
+		d2tk_base_set_tooltip(base, sizeof(tip), tip, handle->tip_height);
+	}
+}
+
+static void
+_expose_text_paste(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
+
+	static const char path [] = "clipboard.png";
+	static const char tip [] = "paste from clipboard";
+
+	const d2tk_state_t state = d2tk_base_button_image(base, D2TK_ID,
+		sizeof(path), path, rect);
+
+	if(d2tk_state_is_changed(state))
+	{
+		size_t txt_len = 0;
+		const char *mime = "UTF8_STRING";
+		const char *txt = d2tk_frontend_get_clipboard(dpugl, &mime, &txt_len);
+
+		if(txt && txt_len && mime && strcmp(mime, "UTF8_STRING"))
+		{
+			_update_text(handle, txt, txt_len);
+		}
+		else
+		{
+			lv2_log_error(&handle->logger, "[%s] failed to paste text: %s", __func__,
+				mime);
+		}
 	}
 	if(d2tk_state_is_over(state))
 	{
@@ -735,8 +831,10 @@ _expose_text_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 static void
 _expose_text_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [6] = { 0, 0, rect->h, rect->h, rect->h, rect->h };
-	D2TK_BASE_LAYOUT(rect, 6, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
+	const d2tk_coord_t frac [7] = {
+		0, 0, rect->h, rect->h, rect->h, rect->h, rect->h
+	};
+	D2TK_BASE_LAYOUT(rect, 7, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -761,11 +859,15 @@ _expose_text_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 4:
 			{
+				_expose_text_paste(handle, lrect);
+			} break;
+			case 5:
+			{
 #ifdef _LV2_HAS_REQUEST_VALUE
 				_expose_text_load(handle, lrect);
 #endif
 			} break;
-			case 5:
+			case 6:
 			{
 				_expose_text_minimize(handle, lrect);
 			} break;
@@ -847,8 +949,10 @@ _expose_image_minimize(plughandle_t *handle, const d2tk_rect_t *rect)
 static void
 _expose_image_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [5] = { 0, rect->h, rect->h, rect->h, rect->h };
-	D2TK_BASE_LAYOUT(rect, 5, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
+	const d2tk_coord_t frac [6] = {
+		0, rect->h, rect->h, rect->h, rect->h, rect->h
+	};
+	D2TK_BASE_LAYOUT(rect, 6, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -869,11 +973,15 @@ _expose_image_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 3:
 			{
+				_expose_image_paste(handle, lrect);
+			} break;
+			case 4:
+			{
 #ifdef _LV2_HAS_REQUEST_VALUE
 				_expose_image_load(handle, lrect);
 #endif
 			} break;
-			case 4:
+			case 5:
 			{
 				_expose_image_minimize(handle, lrect);
 			} break;

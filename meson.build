@@ -119,21 +119,21 @@ ui_ttl = configure_file(
 	install : true,
 	install_dir : inst_dir)
 
-backspace_png = configure_file(
-	input : 'backspace.png',
-	output : 'backspace.png',
+clipboard_png = configure_file(
+	input : 'clipboard.png',
+	output : 'clipboard.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
-document_png = configure_file(
-	input : 'document.png',
-	output : 'document.png',
+copy_png = configure_file(
+	input : 'copy.png',
+	output : 'copy.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
-documents_png = configure_file(
-	input : 'documents.png',
-	output : 'documents.png',
+delete_png = configure_file(
+	input : 'delete.png',
+	output : 'delete.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
@@ -149,9 +149,9 @@ eye_png = configure_file(
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
-open_png = configure_file(
-	input : 'open.png',
-	output : 'open.png',
+save_png = configure_file(
+	input : 'save.png',
+	output : 'save.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
