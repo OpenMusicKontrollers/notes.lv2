@@ -120,37 +120,37 @@ ui_ttl = configure_file(
 	install_dir : inst_dir)
 
 clipboard_png = configure_file(
-	input : 'clipboard.png',
+	input : join_paths('png', 'clipboard.png'),
 	output : 'clipboard.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
 copy_png = configure_file(
-	input : 'copy.png',
+	input : join_paths('png', 'copy.png'),
 	output : 'copy.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
 delete_png = configure_file(
-	input : 'delete.png',
+	input : join_paths('png', 'delete.png'),
 	output : 'delete.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
 eye_off_png = configure_file(
-	input : 'eye-off.png',
+	input : join_paths('png', 'eye-off.png'),
 	output : 'eye-off.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
 eye_png = configure_file(
-	input : 'eye.png',
+	input : join_paths('png', 'eye.png'),
 	output : 'eye.png',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
 save_png = configure_file(
-	input : 'save.png',
+	input : join_paths('png', 'save.png'),
 	output : 'save.png',
 	copy: true,
 	install : true,
