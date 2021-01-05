@@ -328,7 +328,10 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
 
-			handle->request_image = NULL;
+			if(status == LV2UI_REQUEST_VALUE_ERR_UNSUPPORTED)
+			{
+				handle->request_image = NULL;
+			}
 		}
 	}
 	if(d2tk_state_is_over(state))
@@ -657,7 +660,10 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
 
-			handle->request_text = NULL;
+			if(status == LV2UI_REQUEST_VALUE_ERR_UNSUPPORTED)
+			{
+				handle->request_text = NULL;
+			}
 		}
 	}
 	if(d2tk_state_is_over(state))
