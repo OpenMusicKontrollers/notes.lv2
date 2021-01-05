@@ -746,7 +746,7 @@ _expose_text_paste(plughandle_t *handle, const d2tk_rect_t *rect)
 		const char *mime = "UTF8_STRING";
 		const char *txt = d2tk_frontend_get_clipboard(dpugl, &mime, &txt_len);
 
-		if(txt && txt_len && mime && strcmp(mime, "UTF8_STRING"))
+		if(txt && txt_len && mime && !strcmp(mime, "UTF8_STRING"))
 		{
 			_update_text(handle, txt, txt_len);
 		}
