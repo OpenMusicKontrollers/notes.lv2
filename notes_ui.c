@@ -47,7 +47,8 @@ struct _plughandle_t {
 	LV2_Log_Logger logger;
 
 #ifdef _LV2_HAS_REQUEST_VALUE
-	LV2UI_Request_Value *request;
+	LV2UI_Request_Value *request_text;
+	LV2UI_Request_Value *request_image;
 #endif
 
 	d2tk_pugl_config_t config;
@@ -306,7 +307,7 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	static const char path [] = "save.png";
 	static const char tip [] = "load from file";
 
-	if(!handle->request)
+	if(!handle->request_image)
 	{
 		return;
 	}
@@ -319,13 +320,15 @@ _expose_image_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		const LV2_URID key = handle->urid_image;
 		const LV2_URID type = handle->forge.Path;
 
-		const LV2UI_Request_Value_Status status = handle->request->request(
-			handle->request->handle, key, type, NULL);
+		const LV2UI_Request_Value_Status status = handle->request_image->request(
+			handle->request_image->handle, key, type, NULL);
 
 		if(  (status != LV2UI_REQUEST_VALUE_SUCCESS)
 			&& (status != LV2UI_REQUEST_VALUE_BUSY) )
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
+
+			handle->request_image = NULL;
 		}
 	}
 	if(d2tk_state_is_over(state))
@@ -633,7 +636,7 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 	static const char path [] = "save.png";
 	static const char tip [] = "load from file";
 
-	if(!handle->request)
+	if(!handle->request_text)
 	{
 		return;
 	}
@@ -646,13 +649,15 @@ _expose_text_load(plughandle_t *handle, const d2tk_rect_t *rect)
 		const LV2_URID key = handle->urid_text;
 		const LV2_URID type = handle->forge.String;
 
-		const LV2UI_Request_Value_Status status = handle->request->request(
-			handle->request->handle, key, type, NULL);
+		const LV2UI_Request_Value_Status status = handle->request_text->request(
+			handle->request_text->handle, key, type, NULL);
 
 		if(  (status != LV2UI_REQUEST_VALUE_SUCCESS)
 			&& (status != LV2UI_REQUEST_VALUE_BUSY) )
 		{
 			lv2_log_error(&handle->logger, "[%s] requestValue failed: %i", __func__, status);
+
+			handle->request_text = NULL;
 		}
 	}
 	if(d2tk_state_is_over(state))
@@ -1120,7 +1125,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 #ifdef _LV2_HAS_REQUEST_VALUE
 		else if(!strcmp(features[i]->URI, LV2_UI__requestValue))
 		{
-			handle->request = features[i]->data;
+			handle->request_image = features[i]->data;
+			handle->request_text = features[i]->data;
 		}
 #endif
 	}
@@ -1175,8 +1181,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	handle->controller = controller;
 	handle->writer = write_function;
 
-	const d2tk_coord_t w = 400;
-	const d2tk_coord_t h = 800;
+	const d2tk_coord_t w = 800;
+	const d2tk_coord_t h = 600;
 
 	d2tk_pugl_config_t *config = &handle->config;
 	config->parent = (uintptr_t)parent;
