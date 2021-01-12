@@ -290,7 +290,7 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 	static const char lbl [] = "font-height•px";
 
 	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
-		sizeof(lbl), lbl, 10, &handle->state.font_height, 25))
+		sizeof(lbl), lbl, 10, &handle->state.font_height, 25, D2TK_FLAG_NONE))
 	{
 		_message_set_key(handle, handle->urid_fontHeight);
 		_update_font_height(handle);
