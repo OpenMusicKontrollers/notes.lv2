@@ -140,7 +140,7 @@ _render_c_mix(d2tk_base_t *base, const d2tk_rect_t *rect)
 			case 2:
 			{
 				if(d2tk_base_dial_bool_is_changed(
-					base, id, bnd, &val->b))
+					base, id, bnd, &val->b, D2TK_FLAG_NONE))
 				{
 					fprintf(stdout, "dial %016"PRIx64" %s\n", id, val->b ? "ON" : "OFF");
 				}
@@ -277,7 +277,11 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 	{
 		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
 		const unsigned k = d2tk_table_get_index(tab);
+		const unsigned y = d2tk_table_get_index_y(tab);
 		const d2tk_id_t id = D2TK_ID_IDX(k);
+		const d2tk_flag_t flag = y % 2
+			? D2TK_FLAG_NONE
+			: D2TK_FLAG_INACTIVE;
 
 		char lbl [32];
 		const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Spinner/%02X", k);
@@ -287,7 +291,7 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 			case 0:
 			{
 				if(d2tk_base_spinner_int32_is_changed(base, id, trect, lbl_len, lbl,
-					0, &val[k].i32, 99))
+					0, &val[k].i32, 99, flag))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
 				}
@@ -295,7 +299,7 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 			case 1:
 			{
 				if(d2tk_base_spinner_float_is_changed(base, id, trect, lbl_len, lbl,
-					-1.f, &val[k].f32, 0.f))
+					-1.f, &val[k].f32, 0.f, flag))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
 				}
@@ -303,7 +307,7 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 			case 2:
 			{
 				if(d2tk_base_spinner_int32_is_changed(base, id, trect, lbl_len, lbl,
-					-99, &val[k].i32, 33))
+					-99, &val[k].i32, 33, flag))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
 				}
@@ -311,7 +315,7 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 			case 3:
 			{
 				if(d2tk_base_spinner_float_is_changed(base, id, trect, 0, NULL,
-					-0.5f, &val[k].f32, 1.f))
+					-0.5f, &val[k].f32, 1.f, flag))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
 				}
@@ -327,7 +331,7 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 			case 5:
 			{
 				if(d2tk_base_spinner_bool_is_changed(base, id, trect, lbl_len, lbl,
-					&val[k].b32))
+					&val[k].b32, flag))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %s\n", id, val[k].b32 ? "true" : "false");
 				}
@@ -684,8 +688,9 @@ static inline void
 _render_c_layout(d2tk_base_t *base, const d2tk_rect_t *rect)
 {
 #define N 4
+#define M 5
 	static const d2tk_coord_t hfrac [N] = { 4, 2, 1, 1 };
-	static const d2tk_coord_t vfrac [N] = { 100, 0, 0, 100};
+	static const d2tk_coord_t vfrac [M] = { 100, 0, 5, 0, 100};
 
 	D2TK_BASE_LAYOUT(rect, N, hfrac, D2TK_FLAG_LAYOUT_X_REL, hlay)
 	{
@@ -696,12 +701,19 @@ _render_c_layout(d2tk_base_t *base, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				D2TK_BASE_LAYOUT(hrect, N, vfrac, D2TK_FLAG_LAYOUT_Y_ABS, vlay)
+				D2TK_BASE_LAYOUT(hrect, M, vfrac, D2TK_FLAG_LAYOUT_Y_ABS, vlay)
 				{
 					const d2tk_rect_t *vrect = d2tk_layout_get_rect(vlay);
 					const unsigned y = d2tk_layout_get_index(vlay);
 					char lbl [16];
 					const ssize_t lbl_len = snprintf(lbl, sizeof(lbl), "%"PRIu32, vfrac[y]);
+
+					if(y == 2)
+					{
+						d2tk_base_separator(base, vrect, D2TK_FLAG_SEPARATOR_Y);
+
+						continue;
+					}
 
 					if(d2tk_base_button_label_is_changed(base, D2TK_ID_IDX(x*N + y),
 						lbl_len, lbl, D2TK_ALIGN_CENTERED, vrect))
@@ -725,6 +737,7 @@ _render_c_layout(d2tk_base_t *base, const d2tk_rect_t *rect)
 		}
 	}
 #undef N
+#undef M
 }
 
 static inline void
@@ -786,7 +799,7 @@ _render_c_flowmatrix(d2tk_base_t *base, const d2tk_rect_t *rect)
 					{
 						bool *val = &value[i][j][k];
 
-						state = d2tk_base_dial_bool(base, id, bnd, val);
+						state = d2tk_base_dial_bool(base, id, bnd, val, D2TK_FLAG_NONE);
 						if(d2tk_state_is_changed(state))
 						{
 							fprintf(stderr, "Arc %u/%u %s\n", x, y, *val ? "ON" : "OFF");
@@ -903,7 +916,7 @@ _render_c_frame(d2tk_base_t *base, const d2tk_rect_t *rect)
 			const d2tk_rect_t *bnd_inner = d2tk_frame_get_rect(frm);
 			const d2tk_id_t id = D2TK_ID_IDX(k);
 
-			if(d2tk_base_dial_bool_is_changed(base, id, bnd_inner, &val[k]))
+			if(d2tk_base_dial_bool_is_changed(base, id, bnd_inner, &val[k], D2TK_FLAG_NONE))
 			{
 				fprintf(stdout, "dial %016"PRIx64" %s\n", id, val[k] ? "ON" : "OFF");
 			}
