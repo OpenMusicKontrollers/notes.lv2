@@ -2,7 +2,7 @@
 
 ### an LV2 plugin to store arbitrary notes
 
-With this plugin you can store arbitrary notes/metadata/memos about your project.
+With this plugin you can store arbitrary notes/metadata/memos/screenshots about your project.
 
 #### Build status
 
@@ -16,11 +16,9 @@ To install the plugin bundle on your system, simply copy the __notes.lv2__
 folder out of the platform folder of the downloaded package into your
 [LV2 path](http://lv2plug.in/pages/filesystem-hierarchy-standard.html).
 
-<!--
 #### Stable release
 
-* [notes.lv2-0.12.0.zip](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.12.0.zip) ([sig](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.12.0.zip.sig))
--->
+* [notes.lv2-0.2.0.zip](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.2.0.zip) ([sig](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.2.0.zip.sig))
 
 #### Unstable (nightly) release
 
@@ -28,11 +26,9 @@ folder out of the platform folder of the downloaded package into your
 
 ### Sources
 
-<!--
 #### Stable release
 
-* [notes.lv2-0.12.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.12.0.tar.xz)([sig](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.12.0.tar.xz.asc))
--->
+* [notes.lv2-0.2.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.2.0.tar.xz)([sig](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.2.0.tar.xz.asc))
 
 #### Git repository
 
