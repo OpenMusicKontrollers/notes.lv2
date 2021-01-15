@@ -2,7 +2,7 @@
 
 ### an LV2 plugin to store arbitrary notes
 
-With this plugin you can store arbitrary notes/metadata/memos/screenshots about your project.
+With this plugin you can store arbitrary notes/metadata/memos and screenshots about your project.
 
 #### Build status
 
