@@ -101,7 +101,7 @@ _intercept_text(void *data, int64_t frames __attribute__((unused)),
 {
 	plughandle_t *handle = data;
 
-	ssize_t txt_len = impl->value.size - 1;
+	ssize_t txt_len = impl->value.size;
 	const char *txt = handle->state.text;
 
 	const uint64_t hash = d2tk_hash(txt, txt_len);
@@ -126,9 +126,12 @@ _intercept_text(void *data, int64_t frames __attribute__((unused)),
 	{
 		lv2_log_error(&handle->logger, "fsync: %s\n", strerror(errno));
 	}
-	if(write(handle->fd, txt, txt_len) == -1)
+	if(txt_len > 0)
 	{
-		lv2_log_error(&handle->logger, "write: %s\n", strerror(errno));
+		if(write(handle->fd, txt, txt_len - 1) == -1)
+		{
+			lv2_log_error(&handle->logger, "write: %s\n", strerror(errno));
+		}
 	}
 	if(fsync(handle->fd) == -1)
 	{
