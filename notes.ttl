@@ -27,7 +27,6 @@
 @prefix patch:		<http://lv2plug.in/ns/ext/patch#> .
 @prefix log:			<http://lv2plug.in/ns/ext/log#> .
 
-@prefix lic:			<http://opensource.org/licenses/> .
 @prefix omk:			<http://open-music-kontrollers.ch/ventosus#> .
 @prefix proj:			<http://open-music-kontrollers.ch/lv2/> .
 @prefix notes:		<http://open-music-kontrollers.ch/lv2/notes#> .
@@ -99,7 +98,7 @@ notes:notes
 	a lv2:Plugin ,
 		lv2:UtilityPlugin ;
 	doap:name "Notes" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:notes ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
