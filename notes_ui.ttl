@@ -19,6 +19,7 @@
 @prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
 @prefix opts: <http://lv2plug.in/ns/ext/options#> .
+@prefix log: <http://lv2plug.in/ns/ext/log#> .
 
 @prefix notes:	<http://open-music-kontrollers.ch/lv2/notes#> .
 
@@ -28,6 +29,7 @@ notes:ui
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
-	lv2:requiredFeature ui:idleInterface, ui:resize, ui:requestValue, urid:map, opts:options ;
+	lv2:requiredFeature ui:idleInterface, urid:map ;
+	lv2:optionalFeature ui:requestValue, ui:resize, opts:options, log:log;
 	opts:supportedOption ui:scaleFactor ;
 	lv2:extensionData ui:idleInterface, ui:resize .
