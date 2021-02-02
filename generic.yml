@@ -12,7 +12,12 @@ variables:
     - meson --prefix="${CI_PROJECT_DIR}/${CI_PROJECT_NAME}-$(cat VERSION)/${CI_BUILD_NAME}" -Dlv2libdir="" --cross-file "${CI_BUILD_NAME}" ${BUILD_OPTS} build
     - ninja -C build
     - ninja -C build test
+    - meson test -C build --wrap="valgrind --leak-check=full --error-exitcode=1"
     - ninja -C build install
+
+    - meson --prefix="${CI_PROJECT_DIR}/${CI_PROJECT_NAME}-$(cat VERSION)/${CI_BUILD_NAME}" -Dlv2libdir="" --cross-file "${CI_BUILD_NAME}" ${BUILD_OPTS} -Db_sanitize=address sanitize
+    - ninja -C sanitize
+    - ninja -C sanitize test
 
     - scan-build --status-bugs meson --prefix="${CI_PROJECT_DIR}/${CI_PROJECT_NAME}-$(cat VERSION)/${CI_BUILD_NAME}" -Dlv2libdir="" --cross-file "${CI_BUILD_NAME}" ${BUILD_OPTS} scanbuild 
     - scan-build --status-bugs ninja -C scanbuild
