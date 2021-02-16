@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <utime.h>
+#include <wordexp.h>
 
 #include <notes.h>
 #include <props.h>
@@ -87,6 +88,8 @@ struct _plughandle_t {
 
 	int done;
 	int kid;
+
+	wordexp_t wordexp;
 };
 
 static void
@@ -603,13 +606,7 @@ _expose_text_body(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	char *editor = getenv("EDITOR");
-
-	char *args [] = {
-		editor ? editor : "vi",
-		handle->template,
-		NULL
-	};
+	char **args = handle->wordexp.we_wordv;
 
 	d2tk_flag_t flag = D2TK_FLAG_NONE;
 	if(handle->reinit)
@@ -1192,6 +1189,29 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		return NULL;
 	}
 
+	strncpy(handle->template, "/tmp/XXXXXX.md", sizeof(handle->template));
+	handle->fd = mkstemps(handle->template, 3);
+	if(handle->fd == -1)
+	{
+		free(handle);
+		return NULL;
+	}
+
+	lv2_log_note(&handle->logger, "template: %s\n", handle->template);
+
+	static const char *fallback= "vi";
+	const char *editor = getenv("EDITOR");
+	char cmdline [PATH_MAX];
+	snprintf(cmdline, sizeof(cmdline), "%s %s",
+			editor ? editor : fallback,
+			handle->template);
+	if(wordexp(cmdline, &handle->wordexp, WRDE_NOCMD) != 0)
+	{
+		fprintf(stderr, "failed to parse EDITOR");
+		free(handle);
+		return NULL;
+	}
+
 	handle->controller = controller;
 	handle->writer = write_function;
 
@@ -1248,16 +1268,6 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		host_resize->ui_resize(host_resize->handle, w, h);
 	}
 
-	strncpy(handle->template, "/tmp/XXXXXX.md", sizeof(handle->template));
-	handle->fd = mkstemps(handle->template, 3);
-	if(handle->fd == -1)
-	{
-		free(handle);
-		return NULL;
-	}
-
-	lv2_log_note(&handle->logger, "template: %s\n", handle->template);
-
 	for(unsigned i = 0; i < MAX_NPROPS; i++)
 	{
 		const props_def_t *def = &defs[i];
@@ -1276,6 +1286,8 @@ cleanup(LV2UI_Handle instance)
 
 	d2tk_util_kill(&handle->kid);
 	d2tk_frontend_free(handle->dpugl);
+
+	wordfree(&handle->wordexp);
 
 	unlink(handle->template);
 	close(handle->fd);
