@@ -69,7 +69,7 @@ folder out of the platform folder of the downloaded package into your
 	sudo ninja install
 
 If you want to build with embedded Fira font, just disable fontconfig support
-(-Duse-fontconfig=diabled). If fontconfig support is enabled, Fira font MUST
+(-Duse-fontconfig=disabled). If fontconfig support is enabled, Fira font MUST
 be present on your system.
 
 #### UI
