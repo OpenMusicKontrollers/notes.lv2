@@ -18,7 +18,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [notes.lv2-0.2.0.zip](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.2.0.zip) ([sig](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.2.0.zip.sig))
+* [notes.lv2-0.4.0.zip](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.4.0.zip) ([sig](https://dl.open-music-kontrollers.ch/notes.lv2/stable/notes.lv2-0.4.0.zip.sig))
 
 #### Unstable (nightly) release
 
@@ -28,7 +28,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [notes.lv2-0.2.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.2.0.tar.xz)([sig](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.2.0.tar.xz.asc))
+* [notes.lv2-0.4.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.4.0.tar.xz)([sig](https://git.open-music-kontrollers.ch/lv2/notes.lv2/snapshot/notes.lv2-0.4.0.tar.xz.asc))
 
 #### Git repository
 
