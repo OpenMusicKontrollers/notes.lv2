@@ -48,8 +48,7 @@ ui_deps = [lv2_dep, d2tk_dep]
 
 props_inc = include_directories('props.lv2')
 ser_inc = include_directories('ser_atom.lv2')
-d2tk_inc = include_directories(join_paths('subprojects', 'd2tk'))
-inc_dir = [props_inc, ser_inc, d2tk_inc]
+inc_dir = [props_inc, ser_inc]
 
 dsp_srcs = ['notes.c']
 
